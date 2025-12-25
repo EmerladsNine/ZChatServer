@@ -56,14 +56,13 @@ int main()
 
 		while (true) {
 			ssize_t bytes = recv(client_fd, temp, sizeof(temp), 0);
-			std::cout << "bytes :" << temp;
 			if (bytes <= 0) {
 				break;
 			}
 
 			buffer.append(temp,bytes);
 			size_t pos;
-			while ((pos = buffer.find("\n")) != std::string::npos) {
+			while ((pos = buffer.find('\n')) != std::string::npos) {
 				std::string line = buffer.substr(0,pos);
 				buffer.erase(0,pos + 1);
 				
