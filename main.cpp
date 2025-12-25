@@ -49,6 +49,7 @@ int main()
 			perror("Accept");
 			continue;
 		}
+		std::cout << "Accepted \n";
 
 		std::string buffer;
 		char temp[1024];
