@@ -1,4 +1,5 @@
 #include <asm-generic/socket.h>
+#include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -36,7 +37,7 @@ int main()
 		return 1;
 	}
 
-	std::cout << "Server Listening on port " << PORT << std::endl;
+	std::cout << "Server Listening on port " << PORT << "\n";
 
 	while (true) {
 		sockaddr_in client_addr{};
@@ -45,8 +46,30 @@ int main()
 		int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
 		if (client_fd < 0) 
 		{
-			perror("accept");
+			perror("Accept");
 			continue;
+		}
+
+		std::string buffer;
+		char temp[1024];
+
+		while (true) {
+			ssize_t bytes = recv(client_fd, temp, sizeof(temp), 0);
+			if (bytes <= 0) {
+				break;
+			}
+
+			buffer.append(temp,bytes);
+			size_t pos;
+			while ((pos = buffer.find("\n")) != std::string::npos) {
+				std::string line = buffer.substr(0,pos);
+				buffer.erase(0,pos + 1);
+				
+				std::cout << "Recieved: "<< line << std::endl;
+
+				const char* reply = "OK\n";
+				send(client_fd,reply, strlen(reply),0);
+			}
 		}
 	}
 
