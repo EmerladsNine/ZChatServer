@@ -56,7 +56,7 @@ int main()
 
 		while (true) {
 			ssize_t bytes = recv(client_fd, temp, sizeof(temp), 0);
-			std::cout << "bytes :" << bytes;
+			std::cout << "bytes :" << temp;
 			if (bytes <= 0) {
 				break;
 			}
