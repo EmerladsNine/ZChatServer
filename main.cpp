@@ -75,6 +75,7 @@ int main()
                               "-H \"X-Api-Key: 01fea06d176a40e2a269942fa3f8578d\" "
                               "-d '" + jsonData + "'";
 
+				system(curlCommand.c_str());
 				const char* reply = "OK\n";
 				send(client_fd,reply, strlen(reply),0);
 			}
