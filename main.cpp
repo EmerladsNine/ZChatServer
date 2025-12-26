@@ -1,4 +1,5 @@
 #include <asm-generic/socket.h>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdio>
 #include <iostream>
@@ -67,6 +68,12 @@ int main()
 				buffer.erase(0,pos + 1);
 				
 				std::cout << "Recieved: "<< line << std::endl;
+		std::string jsonData = "{\"session\":\"default\",\"chatId\":\"120363389705652096@g.us\",\"text\":\"" + line + "\"}";
+		    std::string curlCommand = "curl -X POST \"http://localhost:3000/api/sendText\" "
+                              "-H \"accept: application/json\" "
+                              "-H \"Content-Type: application/json\" "
+                              "-H \"X-Api-Key: 01fea06d176a40e2a269942fa3f8578d\" "
+                              "-d '" + jsonData + "'";
 
 				const char* reply = "OK\n";
 				send(client_fd,reply, strlen(reply),0);
