@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <type_traits>
 #include <unistd.h>
 #include <vector>
 
@@ -74,6 +75,7 @@ int main() {
     }
 
     char buffer[1024];
+	std::vector<int> disconnected;
     for (auto it = clientsConnected.begin(); it != clientsConnected.end();it++) {
       int client = *it;
       std::cout << "Checking Client :" << client << std::endl;
@@ -83,7 +85,7 @@ int main() {
         if (n <= 0) {
           std::cout << "Client disconnected : " << client << "\n";
           close(client);
-          it = clientsConnected.erase(it);
+	  disconnected.push_back(client);
           continue;
         }
 
@@ -97,5 +99,9 @@ int main() {
         }
       }
     }
+
+	for (int c : disconnected) {
+		clientsConnected.erase(std::remove(clientsConnected.begin(),clientsConnected.end(), c),clientsConnected.end());
+	}
   }
 }
