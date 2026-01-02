@@ -1,17 +1,14 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
-#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <netinet/in.h>
-#include <string>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <type_traits>
 #include <unistd.h>
 #include <vector>
 
@@ -75,8 +72,9 @@ int main() {
     }
 
     char buffer[1024];
-	std::vector<int> disconnected;
-    for (auto it = clientsConnected.begin(); it != clientsConnected.end();it++) {
+    std::vector<int> disconnected;
+    for (auto it = clientsConnected.begin(); it != clientsConnected.end();
+         it++) {
       int client = *it;
       std::cout << "Checking Client :" << client << std::endl;
       if (FD_ISSET(client, &readfds)) {
@@ -85,23 +83,32 @@ int main() {
         if (n <= 0) {
           std::cout << "Client disconnected : " << client << "\n";
           close(client);
-	  disconnected.push_back(client);
+          disconnected.push_back(client);
           continue;
         }
 
-        std::cout << "BroadCasting... from " << client << std::endl;
-        // Broadcast to all other clients
-        for (int other : clientsConnected) {
-          if (other != client) {
-            send(other, buffer, n, 0);
-            std::cout << "BroadCasting to " << other << std::endl;
+        if (buffer[0] == 0) {
+          char pong = 1;
+          std::cout << "recieved ping , sending pong" << std::endl;
+          send(client, &pong, 1, 0);
+          continue;
+        } else if (buffer[0] == 2) {
+          std::cout << "BroadCasting... from " << client << std::endl;
+          // Broadcast to all other clients
+          for (int other : clientsConnected) {
+            if (other != client) {
+              send(other, buffer, n, 0);
+              std::cout << "BroadCasting to " << other << std::endl;
+            }
           }
         }
       }
     }
 
-	for (int c : disconnected) {
-		clientsConnected.erase(std::remove(clientsConnected.begin(),clientsConnected.end(), c),clientsConnected.end());
-	}
+    for (int c : disconnected) {
+      clientsConnected.erase(
+          std::remove(clientsConnected.begin(), clientsConnected.end(), c),
+          clientsConnected.end());
+    }
   }
 }
