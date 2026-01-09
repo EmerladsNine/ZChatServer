@@ -1,6 +1,9 @@
+#include "client_data.h"
+#include "utils.h"
 #include <algorithm>
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -11,6 +14,18 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+
+void my_send(ClientData client, std::vector<char> &buffer) {
+  size_t totalSent = 0;
+  while (totalSent < buffer.size()) {
+    size_t n = send(client.fd, buffer.data(), buffer.size(), 0);
+    if (n <= 0) {
+      perror("send");
+      exit(1);
+    }
+    totalSent += n;
+  }
+}
 
 int main() {
   const int PORT = 9999;
@@ -24,7 +39,7 @@ int main() {
   int opt = 1;
   setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  sockaddr_in addr{};
+  sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = INADDR_ANY;
   addr.sin_port = htons(PORT);
@@ -40,7 +55,7 @@ int main() {
   }
 
   std::cout << "Server Listening on port " << PORT << "\n";
-  std::vector<int> clientsConnected;
+  std::vector<ClientData> clientsConnected;
   while (true) {
     fd_set readfds;    // The set of clients ready to be read.
     FD_ZERO(&readfds); // Clear all bits
@@ -48,9 +63,9 @@ int main() {
 
     // get max fd
     int max_fd = server_fd;
-    for (int c : clientsConnected) {
-      FD_SET(c, &readfds);
-      max_fd = std::max(max_fd, c);
+    for (ClientData client : clientsConnected) {
+      FD_SET(client.fd, &readfds);
+      max_fd = std::max(max_fd, client.fd);
     }
 
     // waits until at least one socket is readable and removes every not
@@ -67,45 +82,82 @@ int main() {
       int client_fd = accept(server_fd, nullptr, nullptr);
       if (client_fd >= 0) {
         std::cout << "New Client Connected : " << client_fd << std::endl;
-        clientsConnected.push_back(client_fd);
+        ClientData client;
+        client.fd = client_fd;
+        client.expectedSize = -1;
+        client.head = -1;
+        clientsConnected.push_back(client);
       }
     }
 
-    char buffer[1024];
-    std::vector<int> disconnected;
+    char temp[4096];
+    std::vector<ClientData> disconnected;
     for (auto it = clientsConnected.begin(); it != clientsConnected.end();
          it++) {
-      int client = *it;
-      std::cout << "Checking Client :" << client << std::endl;
-      if (FD_ISSET(client, &readfds)) {
-        std::cout << "a client is readable" << client << std::endl;
-        ssize_t n = recv(client, buffer, sizeof(buffer), 0);
-        if (n <= 0) {
-          std::cout << "Client disconnected : " << client << "\n";
-          close(client);
-          disconnected.push_back(client);
+      ClientData& client = *it;
+      if (!FD_ISSET(client.fd, &readfds)) {
+        continue;
+      }
+      std::cout << "a client is readable" << client.fd << std::endl;
+      ssize_t n = recv(client.fd, temp, sizeof(temp), 0);
+      std::cout << "recv size :" << n << std::endl;
+      if (n <= 0) {
+        std::cout << "Client disconnected : " << client.fd << "\n";
+        close(client.fd);
+        disconnected.push_back(client);
+        continue;
+      }
+
+      if (client.head == -1) {
+        client.head = temp[0];
+        std::cout << "Head : " << client.head << std::endl;
+      }
+
+      // bodyless units
+      switch (client.head) {
+      case 0: {
+        char pong = 1;
+        std::cout << "received ping , sending pong" << std::endl;
+        send(client.fd, &pong, 1, 0);
+	client.head = -1;
+        continue;
+      }
+      case 1: {
+        std::cout << "received pong" << std::endl;
+	client.head = -1;
+        continue;
+      }
+      }
+
+      client.buf.insert(client.buf.end(), temp, temp + n);
+      if (client.expectedSize == -1) {
+        if (client.buf.size() < 3) {
           continue;
         }
+        client.expectedSize = readUint16FromBuffer(client.buf);
+        std::cout << "Size :" << client.expectedSize << std::endl;
+      }
 
-        if (buffer[0] == 0) {
-          char pong = 1;
-          std::cout << "recieved ping , sending pong" << std::endl;
-          send(client, &pong, 1, 0);
-          continue;
-        } else if (buffer[0] == 2) {
-          std::cout << "BroadCasting... from " << client << std::endl;
-          // Broadcast to all other clients
-          for (int other : clientsConnected) {
-            if (other != client) {
-              send(other, buffer, n, 0);
-              std::cout << "BroadCasting to " << other << std::endl;
-            }
+      if (client.buf.size() < client.expectedSize)
+        continue;
+
+      switch (client.head) {
+      case 2: {
+        std::cout << "BroadCasting... from " << client.fd << std::endl;
+        for (ClientData other : clientsConnected) {
+          if (other.fd != client.fd) {
+            my_send(other, client.buf);
+            std::cout << "BroadCasting to " << other.fd << std::endl;
           }
         }
       }
+      }
+      client.buf.clear();
+      client.expectedSize = -1;
+      client.head = -1;
     }
 
-    for (int c : disconnected) {
+    for (ClientData c : disconnected) {
       clientsConnected.erase(
           std::remove(clientsConnected.begin(), clientsConnected.end(), c),
           clientsConnected.end());
