@@ -14,6 +14,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <chrono>
+#include <cstdint>
+
+using namespace std::chrono;
 
 void my_send(ClientData client, std::vector<char> &buffer) {
   size_t totalSent = 0;
@@ -29,6 +33,7 @@ void my_send(ClientData client, std::vector<char> &buffer) {
 
 int main() {
   const int PORT = 9999;
+  const uint16_t TIME_STAMP_BYTES = 8;
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -134,17 +139,24 @@ int main() {
         if (client.buf.size() < 3) {
           continue;
         }
-        client.expectedSize = readUint16FromBuffer(client.buf);
+
+        client.expectedSize = readUint16FromBuffer(client.buf) + TIME_STAMP_BYTES;
+        std::vector<char> size = intToBigEndian<std::uint16_t>(client.expectedSize);
+        std::copy(size.begin(), size.end(), client.buf.begin() + 1);
+
         std::cout << "Size :" << client.expectedSize << std::endl;
       }
+
+      std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
+      client.buf.insert(client.buf.begin() + 3, timeStamp.begin(), timeStamp.end());
 
       if (client.buf.size() < client.expectedSize)
         continue;
 
       switch (client.head) {
       case 2: {
-        std::cout << "BroadCasting... from " << client.fd << std::endl;
-        for (ClientData other : clientsConnected) {
+          std::cout << "BroadCasting... from " << client.fd << std::endl;
+          for (ClientData other : clientsConnected) {
           if (other.fd != client.fd) {
             my_send(other, client.buf);
             std::cout << "BroadCasting to " << other.fd << std::endl;
