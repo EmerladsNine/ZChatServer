@@ -1,0 +1,1 @@
+g++ main.cpp client.cpp utils.cpp networking_manager.cpp
