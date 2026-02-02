@@ -91,8 +91,6 @@ void NetworkingManager::acceptPendingClients()
                         std::cout << "New Client Connected : " << client_fd << std::endl;
                         Client client(this);
                         client.fd = client_fd;
-                        client.expectedSize = -1;
-                        client.head = -1;
                         clientsConnected.push_back(client);
                 }
         }

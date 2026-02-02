@@ -20,12 +20,10 @@ int main()
                         if (!networkingManager.isReadable(client.fd))
                                 continue;
 
-                        ssize_t n = client.read();
-                        if (n <= 0)
-                        {
+                        client.read();
+                        
+                        if (!client.isAlive)
                                 disconnected.push_back(client);
-                                continue;
-                        }
                 }
 
                 for (Client &client : disconnected)

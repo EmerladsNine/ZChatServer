@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <vector>
 
-uint16_t readUint16FromBuffer(std::vector<char> &buffer);
+uint16_t readUint16FromBuffer(std::vector<char> &buffer,int start);
 
 template <typename T>
 std::vector<char> intToBigEndian(T num) {

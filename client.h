@@ -6,23 +6,20 @@
 #include <cstdlib>
 #include "networking_manager.h"
 
-const uint16_t TIME_STAMP_BYTES = 8;
-
 class Client
 {
 private:
-        NetworkingManager *networkingManager;
-
 public:
+        NetworkingManager *networkingManager;
+        bool isAlive;
         int fd;
-        int head;
-        int expectedSize;
         std::vector<char> buf;
         bool operator==(const Client &other) const
         {
                 return fd == other.fd; // or whatever defines equality
         }
-        ssize_t read();
+        void read();
+
         Client(NetworkingManager *networkingManager);
         ~Client();
 };
