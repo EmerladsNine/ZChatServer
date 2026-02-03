@@ -1,1 +1,1 @@
-g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp
+g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp database.cpp -lsqlite3
