@@ -91,7 +91,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                         client.networkingManager->secure_send(client, packet);
                 };
                 uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
-                if (emailLength == 0 || emailLength > 20 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
+                if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
                         return sendResponseCode(ResponseCode::emailAccountInvalidEmailLengthError);
 
                 std::string email(
@@ -102,7 +102,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                 size_t passwordLength = static_cast<uint8_t>(client.buf[passwordLengthOffset]);
                 size_t passwordOffset = passwordLengthOffset + PASSWORD_LENGTH_SIZE;
 
-                if (passwordLength < 5 || passwordLength > 20 || client.buf.size() < passwordOffset + passwordLength)
+                if (passwordLength < 8 || passwordLength > 254 || client.buf.size() < passwordOffset + passwordLength)
                         return sendResponseCode(ResponseCode::emailAccountInvalidPasswordLengthError);
                 std::string password(
                     reinterpret_cast<const char *>(&client.buf[passwordOffset]),
