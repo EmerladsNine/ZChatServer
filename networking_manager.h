@@ -16,6 +16,7 @@ private:
 public:
         NetworkingManager();
         void safe_send(Client &client, std::vector<char> &buffer);
+        void secure_send(Client &client, std::vector<char> &buffer);
         void init(const int PORT);
         void waitForReadableSockets();
         void acceptPendingClients();

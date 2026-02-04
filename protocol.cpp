@@ -3,6 +3,7 @@
 #include "unit_type.h"
 #include <chrono>
 #include "database.h"
+#include "response_code.h"
 
 using namespace std::chrono;
 
@@ -82,9 +83,16 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
         }
         else if (head == UnitType::emailSignUp)
         {
+                auto sendResponseCode = [&](ResponseCode code)
+                {
+                        std::vector<char> packet;
+                        packet.push_back(UnitType::responseCode);
+                        packet.push_back(code);
+                        client.networkingManager->secure_send(client, packet);
+                };
                 uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
-                if (emailLength == 0 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
-                        return; // Todo send error to the user.
+                if (emailLength == 0 || emailLength > 20 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
+                        return sendResponseCode(ResponseCode::emailAccountInvalidEmailLengthError);
 
                 std::string email(
                     reinterpret_cast<const char *>(&client.buf[EMAIL_OFFSET]),
@@ -94,8 +102,8 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                 size_t passwordLength = static_cast<uint8_t>(client.buf[passwordLengthOffset]);
                 size_t passwordOffset = passwordLengthOffset + PASSWORD_LENGTH_SIZE;
 
-                if (passwordLength < 5 || passwordLength > 254 || client.buf.size() < passwordOffset + passwordLength)
-                        return; // Todo send error to the user.
+                if (passwordLength < 5 || passwordLength > 20 || client.buf.size() < passwordOffset + passwordLength)
+                        return sendResponseCode(ResponseCode::emailAccountInvalidPasswordLengthError);
                 std::string password(
                     reinterpret_cast<const char *>(&client.buf[passwordOffset]),
                     passwordLength);
@@ -103,7 +111,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                 size_t usernameOffset = passwordOffset + passwordLength;
                 size_t usernameLength = expectedSize - usernameOffset;
                 if (usernameLength == 0 || usernameLength > 12)
-                        return; // Todo send error to user.
+                        return sendResponseCode(ResponseCode::emailAccountInvalidUsernameLengthError);
                 std::string username(
                     reinterpret_cast<const char *>(&client.buf[usernameOffset]),
                     usernameLength);
@@ -114,19 +122,20 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                 if (!db.objExists(db.check_email_exists_stmt, email.c_str(), emailExists))
                         return;
                 if (emailExists)
-                {
-                        std::cout << "email already exist" << std::endl;
-                        return;
-                }
+                        return sendResponseCode(ResponseCode::emailAccountEmailExistError);
                 bool usernameExists;
                 if (!db.objExists(db.check_username_exists_stmt, username.c_str(), usernameExists))
-                        return;
+                        return sendResponseCode(ResponseCode::emailAccountCreationFailureError);
                 if (usernameExists)
-                {
-                        std::cout << "username already exist" << std::endl;
-                        return;
-                }
-                db.insertEmailAccount(username.c_str(), email.c_str(), password.c_str());
+                        return sendResponseCode(ResponseCode::emailAccountUsernameExistError);
+                if (!db.insertEmailAccount(username.c_str(), email.c_str(), password.c_str()))
+                        return sendResponseCode(ResponseCode::emailAccountCreationFailureError);
+
+                std::vector<char> packet;
+                packet.push_back(UnitType::responseCode);
+                packet.push_back(ResponseCode::emailAccountCreated);
+                client.networkingManager->secure_send(client, packet);
+                std::cout << "new account created" << std::endl;
         }
 }
 

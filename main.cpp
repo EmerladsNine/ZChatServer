@@ -1,5 +1,4 @@
 #include "client.h"
-#include "utils.h"
 #include <algorithm>
 #include <vector>
 #include "networking_manager.h"

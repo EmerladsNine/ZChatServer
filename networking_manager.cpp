@@ -1,5 +1,6 @@
 #include "networking_manager.h"
 #include "client.h"
+#include "utils.h"
 
 NetworkingManager::NetworkingManager() {}
 
@@ -24,6 +25,15 @@ void NetworkingManager::safe_send(Client &client, std::vector<char> &buffer)
                 }
                 totalSent += n;
         }
+}
+
+void NetworkingManager::secure_send(Client &client, std::vector<char> &buffer)
+{
+        // You encrypt first then get the size and insert it.
+        size_t size = buffer.size();
+        std::vector<char> sizeBytes = intToBigEndian<std::uint16_t>(size);
+        buffer.insert(buffer.begin(), sizeBytes.begin(), sizeBytes.end());
+        safe_send(client, buffer);
 }
 
 void NetworkingManager::init(const int PORT)
