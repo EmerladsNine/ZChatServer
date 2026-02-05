@@ -1,8 +1,9 @@
 #include "networking_manager.h"
 #include "client.h"
 #include "utils.h"
+#include "unit_type.h"
 
-NetworkingManager::NetworkingManager() {}
+NetworkingManager::NetworkingManager(Database *db) : db(db) {}
 
 NetworkingManager::~NetworkingManager() {}
 
@@ -99,9 +100,17 @@ void NetworkingManager::acceptPendingClients()
                 if (client_fd >= 0)
                 {
                         std::cout << "New Client Connected : " << client_fd << std::endl;
-                        Client client(this);
+                        Client client(this, db);
                         client.fd = client_fd;
                         clientsConnected.push_back(client);
                 }
         }
+}
+
+void NetworkingManager::sendResponseCode(Client &client, ResponseCode responseCode)
+{
+        std::vector<char> packet;
+        packet.push_back(UnitType::responseCode);
+        packet.push_back(responseCode);
+        secure_send(client, packet);
 }

@@ -10,11 +10,13 @@ public:
         sqlite3_stmt *insert_email_account_stmt = nullptr;
         sqlite3_stmt *check_email_exists_stmt = nullptr;
         sqlite3_stmt *check_username_exists_stmt = nullptr;
+        sqlite3_stmt *get_pass_hash_from_email_stmt = nullptr;
 
         bool valid = false;
 
         Database();
-        bool objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out);
+        std::string getPasswordHash(const char *email, bool &found, bool &status);
+        void objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, bool &status);
         bool insertEmailAccount(const char *username, const char *email, const char *passwordHash);
         ~Database();
 };

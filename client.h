@@ -5,12 +5,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include "networking_manager.h"
+#include "database.h"
 
 class Client
 {
 private:
 public:
         NetworkingManager *networkingManager;
+        Database *db;
         bool isAlive;
         int fd;
         std::vector<char> buf;
@@ -20,6 +22,6 @@ public:
         }
         void read();
 
-        Client(NetworkingManager *networkingManager);
+        Client(NetworkingManager *networkingManager, Database *db);
         ~Client();
 };

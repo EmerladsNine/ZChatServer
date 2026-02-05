@@ -9,4 +9,8 @@ enum ResponseCode : uint8_t
         emailAccountInvalidPasswordLengthError = 4,
         emailAccountInvalidUsernameLengthError = 5,
         emailAccountCreationFailureError = 6,
+        emailSignInEmailNotExistError = 7,
+        emailSignInFailureError = 8,
+        emailSignInPasswordIncorrectError = 9,
+        emailSignInDone = 10,
 };

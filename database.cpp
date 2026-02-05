@@ -66,6 +66,17 @@ Database::Database()
                 return;
         }
 
+        const char *get_pass_hash_from_email_stmt_text =
+            "SELECT passwordHash FROM accounts WHERE email = ?1 LIMIT 1;";
+        rc = sqlite3_prepare_v2(db, get_pass_hash_from_email_stmt_text, -1, &get_pass_hash_from_email_stmt, nullptr);
+        if (rc != SQLITE_OK)
+        {
+                std::cerr << "sql get passwordHash statement prepare error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
+                sqlite3_close(db);
+                db = nullptr;
+                return;
+        }
+
         valid = true;
 }
 
@@ -83,15 +94,53 @@ void cleanup(sqlite3_stmt *stmt)
         sqlite3_clear_bindings(stmt);
 }
 
-bool Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out)
+std::string Database::getPasswordHash(const char *email, bool &found, bool &status)
 {
+        status = false;
+        found = false;
         if (!valid)
-                return false;
+                return {};
+
+        int rc = sqlite3_bind_text(get_pass_hash_from_email_stmt, 1, email, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                goto error;
+        rc = sqlite3_step(get_pass_hash_from_email_stmt);
+        if (rc == SQLITE_ROW)
+        {
+                if (sqlite3_column_type(get_pass_hash_from_email_stmt, 0) != SQLITE_TEXT)
+                        goto error;
+                const unsigned char *text = sqlite3_column_text(get_pass_hash_from_email_stmt, 0);
+                int len = sqlite3_column_bytes(get_pass_hash_from_email_stmt, 0);
+
+                std::string hash(reinterpret_cast<const char *>(text), len);
+                found = true;
+                status = true;
+                cleanup(get_pass_hash_from_email_stmt);
+                return hash;
+        }
+        else if (rc == SQLITE_DONE)
+        {
+                found = false;
+                status = true;
+                cleanup(get_pass_hash_from_email_stmt);
+                return {};
+        }
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getPasswordHash : " << sqlite3_errmsg(db) << std::endl;
+        cleanup(get_pass_hash_from_email_stmt);
+        return {};
+}
+
+void Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, bool &status)
+{
+        status = false;
+        if (!valid)
+                return;
         int rc = sqlite3_bind_text(exists_stmt, 1, obj, -1, SQLITE_TRANSIENT);
         if (rc != SQLITE_OK)
         {
                 std::cerr << "SQLite error (" << rc << ") on Database::objExists binding obj param : " << sqlite3_errmsg(db) << std::endl;
-                return false;
+                return;
         }
 
         rc = sqlite3_step(exists_stmt);
@@ -107,10 +156,11 @@ bool Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out)
         {
                 std::cerr << "SQLite error (" << rc << ") on Database::objExists sqlite3_step : " << sqlite3_errmsg(db) << std::endl;
                 cleanup(exists_stmt);
-                return false;
+                return;
         }
         cleanup(exists_stmt);
-        return true;
+        status = true;
+        return;
 }
 
 bool Database::insertEmailAccount(const char *username, const char *email, const char *passwordHash)

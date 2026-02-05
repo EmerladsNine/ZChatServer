@@ -4,8 +4,8 @@
 
 using namespace std::chrono;
 
-Client::Client(NetworkingManager *networkingManager)
-    : networkingManager(networkingManager)
+Client::Client(NetworkingManager *networkingManager, Database *db)
+    : networkingManager(networkingManager), db(db)
 {
         isAlive = true;
 }

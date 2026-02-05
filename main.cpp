@@ -6,7 +6,8 @@
 int main()
 {
         const int PORT = 9999;
-        NetworkingManager networkingManager;
+        Database db;
+        NetworkingManager networkingManager(&db);
         networkingManager.init(PORT);
         while (true)
         {
@@ -20,7 +21,7 @@ int main()
                                 continue;
 
                         client.read();
-                        
+
                         if (!client.isAlive)
                                 disconnected.push_back(client);
                 }

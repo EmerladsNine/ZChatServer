@@ -20,6 +20,6 @@ public:
         Protocol();
         static bool parseUnit(Client &client);
         static void handleUnit(Client &client, size_t expectedSize);
-        static void handleNormalMessage(Client &client);
+        static void handleNormalMessage(Client &client, size_t expectedSize);
         ~Protocol();
 };
