@@ -4,6 +4,7 @@
 
 const char *mainDatabasePath = "../Databases/zchat_data.sqlite";
 
+// Todo organize
 Database::Database()
 {
 
@@ -76,6 +77,7 @@ Database::Database()
                 db = nullptr;
                 return;
         }
+        
 
         valid = true;
 }

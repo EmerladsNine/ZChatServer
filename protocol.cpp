@@ -4,6 +4,7 @@
 #include <chrono>
 #include "database.h"
 #include "auth/email_auth.h"
+#include "auth/google_auth.h"
 
 using namespace std::chrono;
 
@@ -71,6 +72,10 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
         else if (head == UnitType::emailSignUp)
         {
                 EmailAuth::SignUp(client, expectedSize);
+        }
+        else if (head == UnitType::googleAuthentication)
+        {
+                GoogleAuth::StartAuthentication(client, expectedSize);
         }
 }
 

@@ -13,4 +13,7 @@ enum ResponseCode : uint8_t
         emailSignInFailureError = 8,
         emailSignInPasswordIncorrectError = 9,
         emailSignInDone = 10,
+        googleAuthInvalidToken = 11,
+        googleAuthSuccessful = 12,
+        googleAuthFailed = 13,
 };
