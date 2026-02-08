@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from google.oauth2 import id_token
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests 
@@ -16,7 +17,7 @@ def verify(data: TokenData):
         try:
                 payload = id_token.verify_oauth2_token(data.token,requests.Request(),CLIENT_ID)
                 user_id = payload.get("sub")
-                return {"ok": True, "userId" : user_id}
+                return PlainTextResponse(user_id)
         except ValueError as e:
                 # Token verification failed (expired, bad signature, malformed)
                 raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")

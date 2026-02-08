@@ -16,4 +16,5 @@ enum ResponseCode : uint8_t
         googleAuthInvalidToken = 11,
         googleAuthSuccessful = 12,
         googleAuthFailed = 13,
+        googleAuthRequireSignUp = 14,
 };

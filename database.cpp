@@ -4,19 +4,12 @@
 
 const char *mainDatabasePath = "../Databases/zchat_data.sqlite";
 
-// Todo organize
 Database::Database()
 {
 
         int rc = sqlite3_open(mainDatabasePath, &db);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql db open error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-                if (db)
-                        sqlite3_close(db);
-                db = nullptr;
+        if (!check(rc, "sql db open error"))
                 return;
-        }
 
         // Create account table if it doesnt exist.
         const char *createAccountTableSQL =
@@ -28,58 +21,50 @@ Database::Database()
             "googleId INTEGER"
             ");";
         rc = sqlite3_exec(db, createAccountTableSQL, nullptr, nullptr, nullptr);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql create account table error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-        }
-
-        const char *insert_email_account_stmt_text =
-            "INSERT INTO accounts(username, email, passwordHash, googleId) "
-            "VALUES (?1 , ?2 , ?3 , ?4 );";
-        rc = sqlite3_prepare_v2(db, insert_email_account_stmt_text, -1, &insert_email_account_stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql insert email statement prepare error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-                sqlite3_close(db);
-                db = nullptr;
+        if (!check(rc, "sql create account table error"))
                 return;
-        }
 
-        const char *check_email_exists_stmt_text =
-            "SELECT email FROM accounts WHERE email = ?1 LIMIT 1;";
-        rc = sqlite3_prepare_v2(db, check_email_exists_stmt_text, -1, &check_email_exists_stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql check email statement prepare error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-                sqlite3_close(db);
-                db = nullptr;
+        if (!prepare(insert_email_account_stmt,
+                     "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4 );",
+                     "sql insert email statement prepare error"))
                 return;
-        }
-
-        const char *check_username_exists_stmt_text =
-            "SELECT username FROM accounts WHERE username = ?1 LIMIT 1;";
-        rc = sqlite3_prepare_v2(db, check_username_exists_stmt_text, -1, &check_username_exists_stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql check username statement prepare error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-                sqlite3_close(db);
-                db = nullptr;
+        if (!prepare(check_email_exists_stmt,
+                     "SELECT email FROM accounts WHERE email = ?1 LIMIT 1;",
+                     "sql check email statement prepare error"))
                 return;
-        }
-
-        const char *get_pass_hash_from_email_stmt_text =
-            "SELECT passwordHash FROM accounts WHERE email = ?1 LIMIT 1;";
-        rc = sqlite3_prepare_v2(db, get_pass_hash_from_email_stmt_text, -1, &get_pass_hash_from_email_stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-                std::cerr << "sql get passwordHash statement prepare error(" << rc << ") : " << sqlite3_errmsg(db) << std::endl;
-                sqlite3_close(db);
-                db = nullptr;
+        if (!prepare(check_username_exists_stmt,
+                     "SELECT username FROM accounts WHERE username = ?1 LIMIT 1;",
+                     "sql check username statement prepare error"))
                 return;
-        }
-        
-
+        if (!prepare(get_pass_hash_from_email_stmt,
+                     "SELECT passwordHash FROM accounts WHERE email = ?1 LIMIT 1;",
+                     "sql get passwordHash statement prepare error"))
+                return;
+        if (!prepare(check_google_id_exists_stmt,
+                     "SELECT googleId FROM accounts WHERE googleId = ?1 LIMIT 1;",
+                     "sql check googleId statement prepare error"))
+                return;
         valid = true;
+}
+
+bool Database::prepare(sqlite3_stmt *&stmt, const char *sql, const char *name)
+{
+        int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+        return check(rc, name);
+}
+
+bool Database::check(int rc, const char *context)
+{
+        if (rc != SQLITE_OK)
+        {
+                std::cerr << context << " (" << rc << ") : "
+                          << sqlite3_errmsg(db) << std::endl;
+                if (db)
+                        sqlite3_close(db);
+                db = nullptr;
+                return false;
+        }
+        return true;
 }
 
 Database::~Database()
@@ -90,7 +75,7 @@ Database::~Database()
                 sqlite3_close(db);
 }
 
-void cleanup(sqlite3_stmt *stmt)
+void cleanup_stmt(sqlite3_stmt *stmt)
 {
         sqlite3_reset(stmt);
         sqlite3_clear_bindings(stmt);
@@ -117,19 +102,19 @@ std::string Database::getPasswordHash(const char *email, bool &found, bool &stat
                 std::string hash(reinterpret_cast<const char *>(text), len);
                 found = true;
                 status = true;
-                cleanup(get_pass_hash_from_email_stmt);
+                cleanup_stmt(get_pass_hash_from_email_stmt);
                 return hash;
         }
         else if (rc == SQLITE_DONE)
         {
                 found = false;
                 status = true;
-                cleanup(get_pass_hash_from_email_stmt);
+                cleanup_stmt(get_pass_hash_from_email_stmt);
                 return {};
         }
 error:
         std::cerr << "SQLite error (" << rc << ") on Database::getPasswordHash : " << sqlite3_errmsg(db) << std::endl;
-        cleanup(get_pass_hash_from_email_stmt);
+        cleanup_stmt(get_pass_hash_from_email_stmt);
         return {};
 }
 
@@ -157,10 +142,10 @@ void Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, 
         else
         {
                 std::cerr << "SQLite error (" << rc << ") on Database::objExists sqlite3_step : " << sqlite3_errmsg(db) << std::endl;
-                cleanup(exists_stmt);
+                cleanup_stmt(exists_stmt);
                 return;
         }
-        cleanup(exists_stmt);
+        cleanup_stmt(exists_stmt);
         status = true;
         return;
 }
@@ -173,7 +158,7 @@ bool Database::insertEmailAccount(const char *username, const char *email, const
         auto fail = [&](int rc, int stepIndex)
         {
                 std::cerr << "SQLite error (" << rc << ") on insertEmailAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
-                cleanup(insert_email_account_stmt);
+                cleanup_stmt(insert_email_account_stmt);
                 return false;
         };
 
@@ -206,6 +191,6 @@ bool Database::insertEmailAccount(const char *username, const char *email, const
         if (rc != SQLITE_DONE)
                 return fail(rc, 5);
 
-        cleanup(insert_email_account_stmt);
+        cleanup_stmt(insert_email_account_stmt);
         return true;
 }

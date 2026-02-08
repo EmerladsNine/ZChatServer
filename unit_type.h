@@ -8,5 +8,6 @@ enum UnitType : uint8_t
         emailSignIn = 3,
         emailSignUp = 4,
         responseCode = 5,
-        googleAuthentication = 6,
+        googleSignIn = 6,
+        googleSignUp = 7
 };

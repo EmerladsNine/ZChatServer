@@ -14,6 +14,7 @@ public:
         NetworkingManager *networkingManager;
         Database *db;
         bool isAlive;
+        bool canRename;
         int fd;
         std::vector<char> buf;
         bool operator==(const Client &other) const

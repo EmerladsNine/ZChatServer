@@ -73,9 +73,13 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
         {
                 EmailAuth::SignUp(client, expectedSize);
         }
-        else if (head == UnitType::googleAuthentication)
+        else if (head == UnitType::googleSignIn)
         {
-                GoogleAuth::StartAuthentication(client, expectedSize);
+                GoogleAuth::SignIn(client, expectedSize);
+        }
+        else if (head == UnitType::googleSignUp)
+        {
+                
         }
 }
 
