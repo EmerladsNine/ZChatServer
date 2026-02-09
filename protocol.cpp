@@ -79,7 +79,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
         }
         else if (head == UnitType::googleSignUp)
         {
-                
+                GoogleAuth::SignUp(client, expectedSize);
         }
 }
 

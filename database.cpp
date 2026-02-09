@@ -18,13 +18,13 @@ Database::Database()
             "username TEXT,"
             "email TEXT,"
             "passwordHash TEXT,"
-            "googleId INTEGER"
+            "googleId TEXT"
             ");";
         rc = sqlite3_exec(db, createAccountTableSQL, nullptr, nullptr, nullptr);
         if (!check(rc, "sql create account table error"))
                 return;
 
-        if (!prepare(insert_email_account_stmt,
+        if (!prepare(insert_account_stmt,
                      "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4 );",
                      "sql insert email statement prepare error"))
                 return;
@@ -69,10 +69,12 @@ bool Database::check(int rc, const char *context)
 
 Database::~Database()
 {
-        if (insert_email_account_stmt)
-                sqlite3_finalize(insert_email_account_stmt);
-        if (db)
-                sqlite3_close(db);
+        sqlite3_finalize(insert_account_stmt);
+        sqlite3_finalize(check_email_exists_stmt);
+        sqlite3_finalize(check_username_exists_stmt);
+        sqlite3_finalize(get_pass_hash_from_email_stmt);
+        sqlite3_finalize(check_google_id_exists_stmt);
+        sqlite3_close(db);
 }
 
 void cleanup_stmt(sqlite3_stmt *stmt)
@@ -158,7 +160,7 @@ bool Database::insertEmailAccount(const char *username, const char *email, const
         auto fail = [&](int rc, int stepIndex)
         {
                 std::cerr << "SQLite error (" << rc << ") on insertEmailAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
-                cleanup_stmt(insert_email_account_stmt);
+                cleanup_stmt(insert_account_stmt);
                 return false;
         };
 
@@ -175,22 +177,59 @@ bool Database::insertEmailAccount(const char *username, const char *email, const
 
         for (auto &param : params)
         {
-                int rc = sqlite3_bind_text(insert_email_account_stmt, param.index, param.value, -1, SQLITE_TRANSIENT);
+                int rc = sqlite3_bind_text(insert_account_stmt, param.index, param.value, -1, SQLITE_TRANSIENT);
                 if (rc != SQLITE_OK)
                         return fail(rc, param.index);
         }
 
         const int googleIdParamIndex = 4;
-        int rc = sqlite3_bind_null(insert_email_account_stmt, googleIdParamIndex);
+        int rc = sqlite3_bind_null(insert_account_stmt, googleIdParamIndex);
         if (rc != SQLITE_OK)
                 return fail(rc, 4);
 
         // Running Statement.
 
-        rc = sqlite3_step(insert_email_account_stmt);
+        rc = sqlite3_step(insert_account_stmt);
         if (rc != SQLITE_DONE)
                 return fail(rc, 5);
 
-        cleanup_stmt(insert_email_account_stmt);
+        cleanup_stmt(insert_account_stmt);
+        return true;
+}
+
+bool Database::insertGoogleAccount(const char *username, const char *googleId)
+{
+        if (!valid)
+                return false;
+        auto fail = [&](int rc, int stepIndex)
+        {
+                std::cerr << "SQLite error (" << rc << ") on insertEmailAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(insert_account_stmt);
+                return false;
+        };
+
+        // Binding Parameters.
+        int rc = sqlite3_bind_text(insert_account_stmt, 1, username, -1, SQLITE_TRANSIENT); // Username
+        if (rc != SQLITE_OK)
+                return fail(rc, 1);
+
+        rc = sqlite3_bind_null(insert_account_stmt, 2); // Email
+        if (rc != SQLITE_OK)
+                return fail(rc, 2);
+
+        rc = sqlite3_bind_null(insert_account_stmt, 3); // Password
+        if (rc != SQLITE_OK)
+                return fail(rc, 3);
+
+        rc = sqlite3_bind_text(insert_account_stmt, 4, googleId, -1, SQLITE_TRANSIENT); // GoogleId
+        if (rc != SQLITE_OK)
+                return fail(rc, 4);
+
+        // Running Statement.
+        rc = sqlite3_step(insert_account_stmt);
+        if (rc != SQLITE_DONE)
+                return fail(rc, 5);
+
+        cleanup_stmt(insert_account_stmt);
         return true;
 }

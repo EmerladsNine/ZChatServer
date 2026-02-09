@@ -80,4 +80,46 @@ void GoogleAuth::SignIn(Client &client, size_t expectedSize)
 void GoogleAuth::SignUp(Client &client, size_t expectedSize)
 {
         NetworkingManager *networkManager = client.networkingManager;
+
+        // Parse.
+        uint8_t usernameLength = static_cast<uint8_t>(client.buf[USERNAME_LENGTH_OFFSET]);
+        if (usernameLength < 3 || usernameLength > 12 || client.buf.size() < USERNAME_OFFSET + usernameLength)
+                return networkManager->sendResponseCode(client, ResponseCode::googleSignUpInvalidUsernameLengthError);
+        std::string username(
+            reinterpret_cast<const char *>(&client.buf[USERNAME_OFFSET]),
+            usernameLength);
+        std::cout << static_cast<int>(usernameLength) << " : " << username << std::endl;
+
+        size_t googleTokenOffset = USERNAME_OFFSET + usernameLength;
+        size_t googleTokenLength = expectedSize - googleTokenOffset;
+        if (googleTokenLength == 0)
+                return networkManager->sendResponseCode(client, ResponseCode::googleAuthInvalidToken);
+        std::string googleToken(
+            reinterpret_cast<const char *>(&client.buf[googleTokenOffset]),
+            googleTokenLength);
+
+        // Check.
+        bool usernameExists;
+        bool status;
+        client.db->objExists(client.db->check_username_exists_stmt, username.c_str(), usernameExists, status);
+        if (!status)
+                return networkManager->sendResponseCode(client, ResponseCode::googleAuthFailed);
+        if (usernameExists)
+                return networkManager->sendResponseCode(client, ResponseCode::googleSignUpUsernameExistError);
+
+        std::string googleId;
+        if (!verifyGoogleToken(googleToken, client, googleId))
+                return;
+        bool googleIdExists;
+        client.db->objExists(client.db->check_google_id_exists_stmt, googleId.c_str(), googleIdExists, status);
+        if (!status)
+                return networkManager->sendResponseCode(client, ResponseCode::googleAuthFailed);
+        if (googleIdExists)
+                return networkManager->sendResponseCode(client, ResponseCode::googleSignUpGoogleIdExistError);
+
+        // Create.
+        if (!client.db->insertGoogleAccount(username.c_str(), googleId.c_str()))
+                return networkManager->sendResponseCode(client, ResponseCode::googleAuthFailed);
+
+        return networkManager->sendResponseCode(client, ResponseCode::googleAuthSuccessful);
 }

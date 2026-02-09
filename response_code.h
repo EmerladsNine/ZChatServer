@@ -17,4 +17,7 @@ enum ResponseCode : uint8_t
         googleAuthSuccessful = 12,
         googleAuthFailed = 13,
         googleAuthRequireSignUp = 14,
+        googleSignUpInvalidUsernameLengthError = 15,
+        googleSignUpUsernameExistError = 16,
+        googleSignUpGoogleIdExistError = 17
 };

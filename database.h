@@ -7,7 +7,7 @@ class Database
 private:
 public:
         sqlite3 *db = nullptr;
-        sqlite3_stmt *insert_email_account_stmt = nullptr;
+        sqlite3_stmt *insert_account_stmt = nullptr;
         sqlite3_stmt *check_email_exists_stmt = nullptr;
         sqlite3_stmt *check_username_exists_stmt = nullptr;
         sqlite3_stmt *check_google_id_exists_stmt = nullptr;
@@ -21,5 +21,6 @@ public:
         bool check(int rc, const char *context);
         void objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, bool &status);
         bool insertEmailAccount(const char *username, const char *email, const char *passwordHash);
+        bool insertGoogleAccount(const char *username, const char *googleId);
         ~Database();
 };
