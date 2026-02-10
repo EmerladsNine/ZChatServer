@@ -18,7 +18,6 @@ void EmailAuth::SignIn(Client &client, size_t expectedSize)
         std::string email(
             reinterpret_cast<const char *>(&client.buf[EMAIL_OFFSET]),
             emailLength);
-        std::cout << static_cast<int>(emailLength) << " : " << email << std::endl;
 
         size_t passwordOffset = EMAIL_OFFSET + emailLength;
         size_t passwordLength = expectedSize - passwordOffset;
@@ -27,7 +26,6 @@ void EmailAuth::SignIn(Client &client, size_t expectedSize)
         std::string password(
             reinterpret_cast<const char *>(&client.buf[passwordOffset]),
             passwordLength);
-        std::cout << passwordLength << " : " << password << std::endl;
 
         // Email and Password Check
         bool emailExists;

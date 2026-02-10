@@ -73,7 +73,6 @@ void GoogleAuth::SignIn(Client &client, size_t expectedSize)
         if (!googleIdExists)
                 return networkManager->sendResponseCode(client, ResponseCode::googleAuthRequireSignUp);
         // Todo send a session id.
-        std::cout << googleId << std::endl;
         return networkManager->sendResponseCode(client, ResponseCode::googleAuthSuccessful);
 }
 
@@ -83,12 +82,11 @@ void GoogleAuth::SignUp(Client &client, size_t expectedSize)
 
         // Parse.
         uint8_t usernameLength = static_cast<uint8_t>(client.buf[USERNAME_LENGTH_OFFSET]);
-        if (usernameLength < 3 || usernameLength > 12 || client.buf.size() < USERNAME_OFFSET + usernameLength)
+        if (usernameLength == 0 || usernameLength > 12 || client.buf.size() < USERNAME_OFFSET + usernameLength)
                 return networkManager->sendResponseCode(client, ResponseCode::googleSignUpInvalidUsernameLengthError);
         std::string username(
             reinterpret_cast<const char *>(&client.buf[USERNAME_OFFSET]),
             usernameLength);
-        std::cout << static_cast<int>(usernameLength) << " : " << username << std::endl;
 
         size_t googleTokenOffset = USERNAME_OFFSET + usernameLength;
         size_t googleTokenLength = expectedSize - googleTokenOffset;
