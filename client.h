@@ -5,13 +5,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include "networking_manager.h"
+#include "database.h"
 
 class Client
 {
 private:
 public:
         NetworkingManager *networkingManager;
+        Database *db;
         bool isAlive;
+        bool canRename;
         int fd;
         std::vector<char> buf;
         bool operator==(const Client &other) const
@@ -20,6 +23,6 @@ public:
         }
         void read();
 
-        Client(NetworkingManager *networkingManager);
+        Client(NetworkingManager *networkingManager, Database *db);
         ~Client();
 };

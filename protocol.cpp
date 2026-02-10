@@ -1,6 +1,10 @@
 #include "protocol.h"
 #include "utils.h"
+#include "unit_type.h"
 #include <chrono>
+#include "database.h"
+#include "auth/email_auth.h"
+#include "auth/google_auth.h"
 
 using namespace std::chrono;
 
@@ -33,9 +37,19 @@ bool Protocol::parseUnit(Client &client)
         if (client.buf.size() < expectedSize)
                 return false;
 
-        uint8_t head = static_cast<uint8_t>(client.buf[HEADER_OFFSET]);
+        // Todo You might decrypt here
 
-        if (head == 0)
+        handleUnit(client, expectedSize);
+
+        client.buf.erase(client.buf.begin(), client.buf.begin() + expectedSize);
+        return true;
+}
+
+void Protocol::handleUnit(Client &client, size_t expectedSize)
+{
+        NetworkingManager *networkManager = client.networkingManager;
+        uint8_t head = static_cast<uint8_t>(client.buf[HEADER_OFFSET]);
+        if (head == UnitType::ping)
         {
                 // Ping received
                 std::vector<char> size = intToBigEndian<std::uint16_t>(1);
@@ -43,26 +57,34 @@ bool Protocol::parseUnit(Client &client)
                 pongPacket.push_back(1);
                 client.networkingManager->safe_send(client, pongPacket);
         }
-        else if (head == 1)
+        else if (head == UnitType::pong)
         {
                 // Pong received
         }
-        else if (head == 2)
+        else if (head == UnitType::normalMessage)
         {
-                Protocol::handleNormalMessage(client);
+                Protocol::handleNormalMessage(client, expectedSize);
         }
-
-        client.buf.erase(client.buf.begin(), client.buf.begin() + expectedSize);
-        return true;
+        else if (head == UnitType::emailSignIn)
+        {
+                EmailAuth::SignIn(client, expectedSize);
+        }
+        else if (head == UnitType::emailSignUp)
+        {
+                EmailAuth::SignUp(client, expectedSize);
+        }
+        else if (head == UnitType::googleSignIn)
+        {
+                GoogleAuth::SignIn(client, expectedSize);
+        }
+        else if (head == UnitType::googleSignUp)
+        {
+                GoogleAuth::SignUp(client, expectedSize);
+        }
 }
 
-void Protocol::handleNormalMessage(Client &client)
+void Protocol::handleNormalMessage(Client &client, size_t expectedSize)
 {
-
-        size_t expectedSize;
-        if (!getExpectedSize(client, expectedSize))
-                return;
-
         std::vector<char> packet(client.buf.begin(), client.buf.begin() + expectedSize);
 
         // Update size in new packet

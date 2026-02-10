@@ -1,1 +1,1 @@
-g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp
+g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp database.cpp auth/email_auth.cpp auth/google_auth.cpp -lsqlite3 -lcurl
