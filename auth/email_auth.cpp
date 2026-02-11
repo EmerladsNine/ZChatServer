@@ -11,7 +11,7 @@ EmailAuth::~EmailAuth()
 
 void EmailAuth::SignIn(Client &client, size_t expectedSize)
 {
-        NetworkingManager *networkManager = client.networkingManager;
+        NetworkingManager *networkManager = client.services->networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidEmailLengthError);
@@ -30,12 +30,16 @@ void EmailAuth::SignIn(Client &client, size_t expectedSize)
         // Email and Password Check
         bool emailExists;
         bool status;
-        std::string passHash = client.db->getPasswordHash(email.c_str(), emailExists, status);
+        std::string passHash = client.services->db->getPasswordHash(email.c_str(), emailExists, status);
         if (!status)
                 return networkManager->sendResponseCode(client, ResponseCode::emailSignInFailureError);
         if (!emailExists)
                 return networkManager->sendResponseCode(client, ResponseCode::emailSignInEmailNotExistError);
-        if (passHash != password)
+
+        int isEqual;
+        if (!client.services->argonHash->verifyPassword(password.c_str(), password.length(), passHash.c_str(), &isEqual))
+                return networkManager->sendResponseCode(client, ResponseCode::emailSignInFailureError);
+        if (!isEqual)
                 return networkManager->sendResponseCode(client, ResponseCode::emailSignInPasswordIncorrectError);
 
         // Todo send a session id
@@ -44,7 +48,7 @@ void EmailAuth::SignIn(Client &client, size_t expectedSize)
 
 void EmailAuth::SignUp(Client &client, size_t expectedSize)
 {
-        NetworkingManager *networkManager = client.networkingManager;
+        NetworkingManager *networkManager = client.services->networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidEmailLengthError);
@@ -75,21 +79,26 @@ void EmailAuth::SignUp(Client &client, size_t expectedSize)
         // Check Email.
         bool emailExists;
         bool status;
-        client.db->objExists(client.db->check_email_exists_stmt, email.c_str(), emailExists, status);
+        client.services->db->objExists(client.services->db->check_email_exists_stmt, email.c_str(), emailExists, status);
         if (!status)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountCreationFailureError);
         if (emailExists)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountEmailExistError);
         // Check Username.
         bool usernameExists;
-        client.db->objExists(client.db->check_username_exists_stmt, username.c_str(), usernameExists, status);
+        client.services->db->objExists(client.services->db->check_username_exists_stmt, username.c_str(), usernameExists, status);
         if (!status)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountCreationFailureError);
         if (usernameExists)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountUsernameExistError);
 
+        // Hash
+        std::string hashedPassword;
+        if (!client.services->argonHash->Hash(password, hashedPassword))
+                return networkManager->sendResponseCode(client, ResponseCode::emailAccountCreationFailureError);
+
         // Create.
-        if (!client.db->insertEmailAccount(username.c_str(), email.c_str(), password.c_str()))
+        if (!client.services->db->insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountCreationFailureError);
 
         // Todo send a session id

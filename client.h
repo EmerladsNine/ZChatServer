@@ -4,15 +4,13 @@
 #include <sys/socket.h>
 #include <cstdio>
 #include <cstdlib>
-#include "networking_manager.h"
-#include "database.h"
+#include "services.h"
 
 class Client
 {
 private:
 public:
-        NetworkingManager *networkingManager;
-        Database *db;
+        Services *services;
         bool isAlive;
         bool canRename;
         int fd;
@@ -23,6 +21,6 @@ public:
         }
         void read();
 
-        Client(NetworkingManager *networkingManager, Database *db);
+        Client(Services *services);
         ~Client();
 };

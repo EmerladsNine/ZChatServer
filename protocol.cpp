@@ -47,7 +47,7 @@ bool Protocol::parseUnit(Client &client)
 
 void Protocol::handleUnit(Client &client, size_t expectedSize)
 {
-        NetworkingManager *networkManager = client.networkingManager;
+        NetworkingManager *networkManager = client.services->networkingManager;
         uint8_t head = static_cast<uint8_t>(client.buf[HEADER_OFFSET]);
         if (head == UnitType::ping)
         {
@@ -55,7 +55,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize)
                 std::vector<char> size = intToBigEndian<std::uint16_t>(1);
                 std::vector<char> pongPacket(size.begin(), size.end());
                 pongPacket.push_back(1);
-                client.networkingManager->safe_send(client, pongPacket);
+                client.services->networkingManager->safe_send(client, pongPacket);
         }
         else if (head == UnitType::pong)
         {
@@ -97,11 +97,11 @@ void Protocol::handleNormalMessage(Client &client, size_t expectedSize)
         packet.insert(packet.begin() + TIME_STAMP_OFFSET, timeStamp.begin(), timeStamp.end());
 
         // Broadcasting
-        for (Client &other : client.networkingManager->clientsConnected)
+        for (Client &other : client.services->networkingManager->clientsConnected)
         {
                 if (other.fd != client.fd)
                 {
-                        client.networkingManager->safe_send(other, packet);
+                        client.services->networkingManager->safe_send(other, packet);
                 }
         }
 }

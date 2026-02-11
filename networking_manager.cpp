@@ -2,8 +2,9 @@
 #include "client.h"
 #include "utils.h"
 #include "unit_type.h"
+#include "services.h"
 
-NetworkingManager::NetworkingManager(Database *db) : db(db) {}
+NetworkingManager::NetworkingManager() {}
 
 NetworkingManager::~NetworkingManager() {}
 
@@ -91,7 +92,7 @@ void NetworkingManager::waitForReadableSockets()
         }
 }
 
-void NetworkingManager::acceptPendingClients()
+void NetworkingManager::acceptPendingClients(Services *services)
 {
         // if server socket is readable then there is a new client connects
         if (FD_ISSET(server_fd, &readfds))
@@ -100,7 +101,7 @@ void NetworkingManager::acceptPendingClients()
                 if (client_fd >= 0)
                 {
                         std::cout << "New Client Connected : " << client_fd << std::endl;
-                        Client client(this, db);
+                        Client client(services);
                         client.fd = client_fd;
                         clientsConnected.push_back(client);
                 }

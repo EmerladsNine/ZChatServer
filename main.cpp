@@ -1,18 +1,25 @@
 #include "client.h"
 #include <algorithm>
 #include <vector>
-#include "networking_manager.h"
+#include "services.h"
 
 int main()
 {
         const int PORT = 9999;
         Database db;
-        NetworkingManager networkingManager(&db);
+        NetworkingManager networkingManager;
+        ArgonHash argonHash;
+
+        Services services;
+        services.db = &db;
+        services.networkingManager = &networkingManager;
+        services.argonHash = &argonHash;
+
         networkingManager.init(PORT);
         while (true)
         {
                 networkingManager.waitForReadableSockets();
-                networkingManager.acceptPendingClients(); // Checks if there is any new client that wants to connect.
+                networkingManager.acceptPendingClients(&services); // Checks if there is any new client that wants to connect.
 
                 std::vector<Client> disconnected;
                 for (Client &client : networkingManager.clientsConnected)
