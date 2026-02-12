@@ -10,8 +10,7 @@ class Client
 {
 private:
 public:
-        Services *services;
-        bool isAlive;
+        bool isAlive = true;
         bool canRename;
         int fd;
         std::vector<char> buf;
@@ -19,8 +18,8 @@ public:
         {
                 return fd == other.fd; // or whatever defines equality
         }
-        void read();
+        void read(Services &services);
 
-        Client(Services *services);
+        Client();
         ~Client();
 };

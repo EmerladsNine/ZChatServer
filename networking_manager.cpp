@@ -92,7 +92,7 @@ void NetworkingManager::waitForReadableSockets()
         }
 }
 
-void NetworkingManager::acceptPendingClients(Services *services)
+void NetworkingManager::acceptPendingClients()
 {
         // if server socket is readable then there is a new client connects
         if (FD_ISSET(server_fd, &readfds))
@@ -101,7 +101,7 @@ void NetworkingManager::acceptPendingClients(Services *services)
                 if (client_fd >= 0)
                 {
                         std::cout << "New Client Connected : " << client_fd << std::endl;
-                        Client client(services);
+                        Client client;
                         client.fd = client_fd;
                         clientsConnected.push_back(client);
                 }

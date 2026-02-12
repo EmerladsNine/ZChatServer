@@ -22,7 +22,7 @@ public:
         void secure_send(Client &client, std::vector<char> &buffer);
         void init(const int PORT);
         void waitForReadableSockets();
-        void acceptPendingClients(Services *services);
+        void acceptPendingClients();
         bool isReadable(int client_fd);
         void sendResponseCode(Client &client, ResponseCode responseCode);
         std::vector<Client> clientsConnected;

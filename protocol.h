@@ -14,8 +14,8 @@ class Protocol
 private:
 public:
         Protocol();
-        static bool parseUnit(Client &client);
-        static void handleUnit(Client &client, size_t expectedSize);
-        static void handleNormalMessage(Client &client, size_t expectedSize);
+        static bool parseUnit(Client &client, Services &services);
+        static void handleUnit(Client &client, size_t expectedSize, Services &services);
+        static void handleNormalMessage(Client &client, size_t expectedSize, Services &services);
         ~Protocol();
 };

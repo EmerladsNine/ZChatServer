@@ -4,17 +4,15 @@
 
 using namespace std::chrono;
 
-Client::Client(Services *services)
-    : services(services)
+Client::Client()
 {
-        isAlive = true;
 }
 
 Client::~Client()
 {
 }
 
-void Client::read()
+void Client::read(Services &services)
 {
         char temp[4096];
         ssize_t n = recv(fd, temp, sizeof(temp), 0);
@@ -31,7 +29,7 @@ void Client::read()
 
         while (buf.size() > 0)
         {
-                if (!Protocol::parseUnit(*this))
+                if (!Protocol::parseUnit(*this, services))
                         return;
         }
 }

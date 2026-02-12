@@ -19,7 +19,7 @@ int main()
         while (true)
         {
                 networkingManager.waitForReadableSockets();
-                networkingManager.acceptPendingClients(&services); // Checks if there is any new client that wants to connect.
+                networkingManager.acceptPendingClients(); // Checks if there is any new client that wants to connect.
 
                 std::vector<Client> disconnected;
                 for (Client &client : networkingManager.clientsConnected)
@@ -27,7 +27,7 @@ int main()
                         if (!networkingManager.isReadable(client.fd))
                                 continue;
 
-                        client.read();
+                        client.read(services);
 
                         if (!client.isAlive)
                                 disconnected.push_back(client);
