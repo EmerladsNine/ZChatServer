@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "unit_type.h"
 #include <chrono>
-#include "database.h"
+#include "database_managment/database.h"
 #include "auth/email_auth.h"
 #include "auth/google_auth.h"
 
@@ -80,6 +80,36 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         else if (head == UnitType::googleSignUp)
         {
                 GoogleAuth::SignUp(client, expectedSize, services);
+        }
+        else if (head == UnitType::searchWithUsername)
+        {
+                size_t usernameOffset = 3;
+                size_t usernameLength = expectedSize - usernameOffset;
+                if (usernameLength == 0)
+                {
+                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
+                }
+                std::string username(reinterpret_cast<const char *>(&client.buf[usernameOffset]), usernameLength);
+                Account account;
+                bool isFound;
+                if (!services.db->getAccountFromUsername(username.c_str(), account, &isFound))
+                {
+                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                }
+
+                if (!isFound)
+                {
+                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
+                }
+
+                std::vector<char> packet;
+                packet.push_back(UnitType::searchResponseCode);
+                packet.push_back(SearchResponseCode::Found);
+                std::vector<char> id = intToBigEndian<std::uint16_t>(account.id);
+                packet.insert(packet.end(), id.begin(), id.end());
+                packet.insert(packet.end(),account.username.begin(),account.username.end());
+
+                networkManager->secure_send(client, packet);
         }
 }
 

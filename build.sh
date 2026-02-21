@@ -1,1 +1,1 @@
-g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp database.cpp services.cpp auth/email_auth.cpp auth/google_auth.cpp security/argon_hash.cpp -lsqlite3 -lcurl -lsodium
+g++ main.cpp client.cpp utils.cpp networking_manager.cpp protocol.cpp database_managment/database.cpp services.cpp auth/email_auth.cpp auth/google_auth.cpp security/argon_hash.cpp database_managment/account.cpp -lsqlite3 -lcurl -lsodium

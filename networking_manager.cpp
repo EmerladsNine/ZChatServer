@@ -108,10 +108,18 @@ void NetworkingManager::acceptPendingClients()
         }
 }
 
-void NetworkingManager::sendResponseCode(Client &client, ResponseCode responseCode)
+void NetworkingManager::sendResponseCode(Client &client,ResponseCode responseCode)
 {
         std::vector<char> packet;
         packet.push_back(UnitType::responseCode);
+        packet.push_back(responseCode);
+        secure_send(client, packet);
+}
+
+void NetworkingManager::sendSearchResponseCode(Client &client,SearchResponseCode responseCode)
+{
+        std::vector<char> packet;
+        packet.push_back(UnitType::searchResponseCode);
         packet.push_back(responseCode);
         secure_send(client, packet);
 }

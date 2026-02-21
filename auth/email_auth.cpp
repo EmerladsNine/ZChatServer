@@ -86,7 +86,7 @@ void EmailAuth::SignUp(Client &client, size_t expectedSize, Services &services)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountEmailExistError);
         // Check Username.
         bool usernameExists;
-        services.db->objExists(services.db->check_username_exists_stmt, username.c_str(), usernameExists, status);
+        services.db->objExists(services.db->get_account_from_username_stmt, username.c_str(), usernameExists, status);
         if (!status)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountCreationFailureError);
         if (usernameExists)
