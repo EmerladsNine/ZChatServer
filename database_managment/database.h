@@ -24,6 +24,9 @@ public:
         void objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, bool &status);
         bool insertEmailAccount(const char *username, const char *email, const char *passwordHash);
         bool insertGoogleAccount(const char *username, const char *googleId);
-        bool getAccountFromUsername(const char *username, Account &accountOut, bool *isFound);
+        bool getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, bool &isFound);
+        bool getAccountFromUsername(const char *username, Account &accountOut, bool &isFound);
+        bool getAccountFromId(int id, Account &accountOut, bool &isFound);
+
         ~Database();
 };

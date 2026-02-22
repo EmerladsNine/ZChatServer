@@ -92,7 +92,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
                 std::string username(reinterpret_cast<const char *>(&client.buf[usernameOffset]), usernameLength);
                 Account account;
                 bool isFound;
-                if (!services.db->getAccountFromUsername(username.c_str(), account, &isFound))
+                if (!services.db->getAccountFromUsername(username.c_str(), account, isFound))
                 {
                         return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
                 }
@@ -107,7 +107,32 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
                 packet.push_back(SearchResponseCode::Found);
                 std::vector<char> id = intToBigEndian<std::uint16_t>(account.id);
                 packet.insert(packet.end(), id.begin(), id.end());
-                packet.insert(packet.end(),account.username.begin(),account.username.end());
+                packet.insert(packet.end(), account.username.begin(), account.username.end());
+
+                networkManager->secure_send(client, packet);
+        }
+        else if (head == UnitType::searchWithId)
+        {
+                size_t idOffset = 3;
+                int id = readUint32FromBuffer(client.buf, idOffset);
+                Account account;
+                bool isFound;
+                if (!services.db->getAccountFromId(id, account, isFound))
+                {
+                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                }
+
+                if (!isFound)
+                {
+                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
+                }
+
+                std::vector<char> packet;
+                packet.push_back(UnitType::searchResponseCode);
+                packet.push_back(SearchResponseCode::Found);
+                std::vector<char> accId = intToBigEndian<std::uint16_t>(account.id);
+                packet.insert(packet.end(), accId.begin(), accId.end());
+                packet.insert(packet.end(), account.username.begin(), account.username.end());
 
                 networkManager->secure_send(client, packet);
         }

@@ -239,89 +239,82 @@ bool Database::insertGoogleAccount(const char *username, const char *googleId)
         return true;
 }
 
-bool Database::getAccountFromUsername(const char *username, Account &accountOut, bool* isFound)
+bool Database::getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, bool &isFound)
 {
-        *isFound = false;
-        if (!valid)
-                return false;
-
-        int rc = sqlite3_bind_text(get_account_from_username_stmt, 1, username, -1, SQLITE_TRANSIENT);
-        if (rc != SQLITE_OK)
-                goto error;
-        rc = sqlite3_step(get_account_from_username_stmt);
+        int rc = sqlite3_step(readyToRunStmt);
         if (rc == SQLITE_DONE)
         {
-                *isFound = false;
-                cleanup_stmt(get_account_from_username_stmt);
+                isFound = false;
+                cleanup_stmt(readyToRunStmt);
                 return true;
         }
         else if (rc == SQLITE_ROW)
         {
-                if (sqlite3_column_type(get_account_from_username_stmt, 0) != SQLITE_INTEGER)
+                if (sqlite3_column_type(readyToRunStmt, 0) != SQLITE_INTEGER)
                         goto error;
-                int id = sqlite3_column_int(get_account_from_username_stmt, 0);
+                int id = sqlite3_column_int(readyToRunStmt, 0);
 
-                if (sqlite3_column_type(get_account_from_username_stmt, 1) != SQLITE_TEXT)
+                if (sqlite3_column_type(readyToRunStmt, 1) != SQLITE_TEXT)
                         goto error;
-                const unsigned char *text = sqlite3_column_text(get_account_from_username_stmt, 1);
-                int len = sqlite3_column_bytes(get_account_from_username_stmt, 1);
+                const unsigned char *text = sqlite3_column_text(readyToRunStmt, 1);
+                int len = sqlite3_column_bytes(readyToRunStmt, 1);
                 std::string username(reinterpret_cast<const char *>(text), len);
 
                 std::string email;
-                if (sqlite3_column_type(get_account_from_username_stmt, 2) == SQLITE_NULL)
+                if (sqlite3_column_type(readyToRunStmt, 2) == SQLITE_NULL)
                 {
-                        email.clear(); // or keep as empty string
+                        email.clear();
                 }
-                else if (sqlite3_column_type(get_account_from_username_stmt, 2) == SQLITE_TEXT)
+                else if (sqlite3_column_type(readyToRunStmt, 2) == SQLITE_TEXT)
                 {
-                        const unsigned char *text = sqlite3_column_text(get_account_from_username_stmt, 2);
+                        const unsigned char *text = sqlite3_column_text(readyToRunStmt, 2);
                         if (!text)
                                 goto error;
 
-                        int len = sqlite3_column_bytes(get_account_from_username_stmt, 2);
+                        int len = sqlite3_column_bytes(readyToRunStmt, 2);
                         email.assign(reinterpret_cast<const char *>(text), len);
                 }
                 else
                 {
-                        goto error;
+                        goto type_error;
                 }
 
                 std::string passHash;
-                if (sqlite3_column_type(get_account_from_username_stmt, 3) == SQLITE_NULL)
+                if (sqlite3_column_type(readyToRunStmt, 3) == SQLITE_NULL)
                 {
                         passHash.clear();
                 }
-                else if (sqlite3_column_type(get_account_from_username_stmt, 3) == SQLITE_TEXT)
+                else if (sqlite3_column_type(readyToRunStmt, 3) == SQLITE_TEXT)
                 {
-                        const unsigned char *text = sqlite3_column_text(get_account_from_username_stmt, 3);
+                        const unsigned char *text = sqlite3_column_text(readyToRunStmt, 3);
                         if (!text)
                                 goto error;
 
-                        int len = sqlite3_column_bytes(get_account_from_username_stmt, 3);
+                        int len = sqlite3_column_bytes(readyToRunStmt, 3);
                         passHash.assign(reinterpret_cast<const char *>(text), len);
                 }
                 else
                 {
-                        goto error;
+                        goto type_error;
                 }
 
                 std::string googleId;
-                if (sqlite3_column_type(get_account_from_username_stmt, 4) == SQLITE_NULL)
+                if (sqlite3_column_type(readyToRunStmt, 4) == SQLITE_NULL)
                 {
                         googleId.clear();
                 }
-                else if (sqlite3_column_type(get_account_from_username_stmt, 4) == SQLITE_TEXT)
+                else if (sqlite3_column_type(readyToRunStmt, 4) == SQLITE_TEXT)
                 {
-                        const unsigned char *text = sqlite3_column_text(get_account_from_username_stmt, 4);
+                        const unsigned char *text = sqlite3_column_text(readyToRunStmt, 4);
                         if (!text)
                                 goto error;
 
-                        int len = sqlite3_column_bytes(get_account_from_username_stmt, 4);
+                        int len = sqlite3_column_bytes(readyToRunStmt, 4);
                         googleId.assign(reinterpret_cast<const char *>(text), len);
                 }
                 else
                 {
-                        goto error;
+                        goto type_error;
                 }
 
                 accountOut.id = id;
@@ -329,12 +322,48 @@ bool Database::getAccountFromUsername(const char *username, Account &accountOut,
                 accountOut.email = email;
                 accountOut.passHash = passHash;
                 accountOut.googleId = googleId;
-                *isFound = true;
-                cleanup_stmt(get_account_from_username_stmt);
+                isFound = true;
+                cleanup_stmt(readyToRunStmt);
                 return true;
         }
+type_error:
+        std::cerr << "SQLite error on Database::getAccount : incorrect type" << std::endl;
+        cleanup_stmt(readyToRunStmt);
+        return false;
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getAccount : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(readyToRunStmt);
+        return false;
+}
+
+bool Database::getAccountFromUsername(const char *username, Account &accountOut, bool &isFound)
+{
+        isFound = false;
+        if (!valid)
+                return false;
+
+        int rc = sqlite3_bind_text(get_account_from_username_stmt, 1, username, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                goto error;
+        return getAccount(get_account_from_username_stmt, accountOut, isFound);
 error:
         std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromUsername : " << sqlite3_errmsg(db) << std::endl;
         cleanup_stmt(get_account_from_username_stmt);
+        return false;
+}
+
+bool Database::getAccountFromId(int id, Account &accountOut, bool &isFound)
+{
+        isFound = false;
+        if (!valid)
+                return false;
+
+        int rc = sqlite3_bind_int(get_account_from_id_stmt, 1, id);
+        if (rc != SQLITE_OK)
+                goto error;
+        return getAccount(get_account_from_id_stmt, accountOut, isFound);
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromId : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(get_account_from_id_stmt);
         return false;
 }
