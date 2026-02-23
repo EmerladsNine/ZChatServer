@@ -85,7 +85,8 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         {
                 size_t usernameOffset = 3;
                 size_t usernameLength = expectedSize - usernameOffset;
-                if (usernameLength == 0)
+
+                if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX)
                 {
                         return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
                 }

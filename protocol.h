@@ -9,6 +9,8 @@ const uint16_t HEAD_SIZE = 1;
 const size_t HEADER_OFFSET = EXPECTED_SIZE_BYTES;
 const size_t TIME_STAMP_OFFSET = HEADER_OFFSET + HEAD_SIZE;
 
+const size_t USERNAME_LENGTH_MAX = 20;
+
 class Protocol
 {
 private:
