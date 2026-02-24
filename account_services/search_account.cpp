@@ -59,7 +59,7 @@ void AccountHandler::SearchWithId(Client &client, size_t expectedSize, Services 
         std::vector<char> packet;
         packet.push_back(UnitType::searchResponseCode);
         packet.push_back(SearchResponseCode::Found);
-        std::vector<char> accId = intToBigEndian<std::uint16_t>(account.id);
+        std::vector<char> accId = intToBigEndian<std::uint32_t>(account.id);
         packet.insert(packet.end(), accId.begin(), accId.end());
         packet.insert(packet.end(), account.username.begin(), account.username.end());
 

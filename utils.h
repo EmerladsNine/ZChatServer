@@ -18,12 +18,12 @@ std::vector<char> intToBigEndian(T num)
 template <typename T>
 T bigEndianToInt(std::vector<char> &buffer, int start)
 {
-        T i;
+        T val = 0;
         int j = 0;
         for (int i = sizeof(T) - 1; i != -1; i--)
         {
-                i |= buffer[start + j] << i * 8;
+                val |= buffer[start + j] << (i * 8);
                 j++;
         }
-        return i;
+        return val;
 }
