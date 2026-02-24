@@ -3,9 +3,7 @@
 #include "unit_type.h"
 #include <chrono>
 #include "database_managment/database.h"
-#include "auth/email_auth.h"
-#include "auth/google_auth.h"
-
+#include "handlers/account_handler.h"
 using namespace std::chrono;
 
 Protocol::Protocol()
@@ -21,7 +19,7 @@ bool getExpectedSize(Client &client, size_t &out)
         if (client.buf.size() < EXPECTED_SIZE_BYTES)
                 return false;
 
-        size_t size = readUint16FromBuffer(client.buf, 0);
+        size_t size = bigEndianToInt<uint16_t>(client.buf, 0);
         if (size == 0)
                 return false;
         out = size + EXPECTED_SIZE_BYTES;
@@ -67,75 +65,27 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         }
         else if (head == UnitType::emailSignIn)
         {
-                EmailAuth::SignIn(client, expectedSize, services);
+                AccountHandler::EmailSignIn(client, expectedSize, services);
         }
         else if (head == UnitType::emailSignUp)
         {
-                EmailAuth::SignUp(client, expectedSize, services);
+                AccountHandler::EmailSignUp(client, expectedSize, services);
         }
         else if (head == UnitType::googleSignIn)
         {
-                GoogleAuth::SignIn(client, expectedSize, services);
+                AccountHandler::GoogleSignIn(client, expectedSize, services);
         }
         else if (head == UnitType::googleSignUp)
         {
-                GoogleAuth::SignUp(client, expectedSize, services);
+                AccountHandler::GoogleSignUp(client, expectedSize, services);
         }
         else if (head == UnitType::searchWithUsername)
         {
-                size_t usernameOffset = 3;
-                size_t usernameLength = expectedSize - usernameOffset;
-
-                if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX)
-                {
-                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
-                }
-                std::string username(reinterpret_cast<const char *>(&client.buf[usernameOffset]), usernameLength);
-                Account account;
-                bool isFound;
-                if (!services.db->getAccountFromUsername(username.c_str(), account, isFound))
-                {
-                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
-                }
-
-                if (!isFound)
-                {
-                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
-                }
-
-                std::vector<char> packet;
-                packet.push_back(UnitType::searchResponseCode);
-                packet.push_back(SearchResponseCode::Found);
-                std::vector<char> id = intToBigEndian<std::uint16_t>(account.id);
-                packet.insert(packet.end(), id.begin(), id.end());
-                packet.insert(packet.end(), account.username.begin(), account.username.end());
-
-                networkManager->secure_send(client, packet);
+                AccountHandler::SearchWithUsername(client, expectedSize, services);
         }
         else if (head == UnitType::searchWithId)
         {
-                size_t idOffset = 3;
-                int id = readUint32FromBuffer(client.buf, idOffset);
-                Account account;
-                bool isFound;
-                if (!services.db->getAccountFromId(id, account, isFound))
-                {
-                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
-                }
-
-                if (!isFound)
-                {
-                        return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
-                }
-
-                std::vector<char> packet;
-                packet.push_back(UnitType::searchResponseCode);
-                packet.push_back(SearchResponseCode::Found);
-                std::vector<char> accId = intToBigEndian<std::uint16_t>(account.id);
-                packet.insert(packet.end(), accId.begin(), accId.end());
-                packet.insert(packet.end(), account.username.begin(), account.username.end());
-
-                networkManager->secure_send(client, packet);
+                AccountHandler::SearchWithId(client, expectedSize, services);
         }
 }
 

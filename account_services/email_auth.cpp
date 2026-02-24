@@ -1,16 +1,13 @@
-#include "email_auth.h"
+#include "../handlers/account_handler.h"
+#include "../protocol.h"
 #include "../unit_type.h"
 
-EmailAuth::EmailAuth()
-{
-}
 
-EmailAuth::~EmailAuth()
+void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &services)
 {
-}
-
-void EmailAuth::SignIn(Client &client, size_t expectedSize, Services &services)
-{
+        const uint16_t EMAIN_LENGTH_SIZE = 1;
+        const size_t EMAIL_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
+        const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
         NetworkingManager *networkManager = services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength)
@@ -46,8 +43,12 @@ void EmailAuth::SignIn(Client &client, size_t expectedSize, Services &services)
         networkManager->sendResponseCode(client, ResponseCode::emailSignInDone);
 }
 
-void EmailAuth::SignUp(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &services)
 {
+        const uint16_t EMAIN_LENGTH_SIZE = 1;
+        const uint16_t PASSWORD_LENGTH_SIZE = 1;
+        const size_t EMAIL_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
+        const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
         NetworkingManager *networkManager = services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)

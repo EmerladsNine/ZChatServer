@@ -1,14 +1,6 @@
-#include "google_auth.h"
+#include "../handlers/account_handler.h"
 #include "../protocol.h"
 #include "curl/curl.h"
-
-GoogleAuth::GoogleAuth()
-{
-}
-
-GoogleAuth::~GoogleAuth()
-{
-}
 
 bool verifyGoogleToken(std::string &token, Client &client, std::string &googleIdOut, Services &services)
 {
@@ -53,14 +45,15 @@ bool verifyGoogleToken(std::string &token, Client &client, std::string &googleId
         return true;
 }
 
-void GoogleAuth::SignIn(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::GoogleSignIn(Client &client, size_t expectedSize, Services &services)
 {
+        const size_t GOOGLE_TOKEN_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         NetworkingManager *networkManager = services.networkingManager;
-        size_t googleTokenLength = expectedSize - GOOGLE_TOKEN_SIGNIN_OFFSET;
+        size_t googleTokenLength = expectedSize - GOOGLE_TOKEN_OFFSET;
         if (googleTokenLength == 0)
                 return networkManager->sendResponseCode(client, ResponseCode::googleAuthInvalidToken);
         std::string googleToken(
-            reinterpret_cast<const char *>(&client.buf[GOOGLE_TOKEN_SIGNIN_OFFSET]),
+            reinterpret_cast<const char *>(&client.buf[GOOGLE_TOKEN_OFFSET]),
             googleTokenLength);
         std::string googleId;
         if (!verifyGoogleToken(googleToken, client, googleId, services))
@@ -76,10 +69,12 @@ void GoogleAuth::SignIn(Client &client, size_t expectedSize, Services &services)
         return networkManager->sendResponseCode(client, ResponseCode::googleAuthSuccessful);
 }
 
-void GoogleAuth::SignUp(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services &services)
 {
         NetworkingManager *networkManager = services.networkingManager;
-
+        const size_t USERNAME_LENGTH_SIZE = 1;
+        const size_t USERNAME_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
+        const size_t USERNAME_OFFSET = USERNAME_LENGTH_OFFSET + USERNAME_LENGTH_SIZE;
         // Parse.
         uint8_t usernameLength = static_cast<uint8_t>(client.buf[USERNAME_LENGTH_OFFSET]);
         if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX || client.buf.size() < USERNAME_OFFSET + usernameLength)

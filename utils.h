@@ -2,16 +2,28 @@
 #include <cstdint>
 #include <vector>
 
-uint16_t readUint16FromBuffer(std::vector<char> &buffer,int start);
-uint32_t readUint32FromBuffer(std::vector<char> &buffer,int start);
+template <typename T>
+std::vector<char> intToBigEndian(T num)
+{
+
+        std::vector<char> list;
+        for (int i = sizeof(T) - 1; i != -1; i--)
+        {
+                list.push_back(static_cast<char>((num >> (i * 8)) & 0xff));
+        }
+
+        return list;
+}
 
 template <typename T>
-std::vector<char> intToBigEndian(T num) {
-
-    std::vector<char> list;
-    for (int i = sizeof(T) - 1; i != -1; i--) {
-        list.push_back(static_cast<char>((num >> (i * 8)) & 0xff));
-    }
-
-    return list;
+T bigEndianToInt(std::vector<char> &buffer, int start)
+{
+        T i;
+        int j = 0;
+        for (int i = sizeof(T) - 1; i != -1; i--)
+        {
+                i |= buffer[start + j] << i * 8;
+                j++;
+        }
+        return i;
 }
