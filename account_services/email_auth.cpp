@@ -10,7 +10,7 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
         const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
         NetworkingManager *networkManager = services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
-        if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength)
+        if (emailLength < EMAIL_LENGTH_MIN || emailLength > EMAIL_LENGTH_MAX || client.buf.size() < EMAIL_OFFSET + emailLength)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidEmailLengthError);
         std::string email(
             reinterpret_cast<const char *>(&client.buf[EMAIL_OFFSET]),
@@ -18,7 +18,7 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
 
         size_t passwordOffset = EMAIL_OFFSET + emailLength;
         size_t passwordLength = expectedSize - passwordOffset;
-        if (passwordLength < 8 || passwordLength > 254)
+        if (passwordLength < PASSWORD_LENGTH_MIN || passwordLength > PASSWORD_LENGTH_MAX)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidPasswordLengthError);
         std::string password(
             reinterpret_cast<const char *>(&client.buf[passwordOffset]),
@@ -51,7 +51,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
         const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
         NetworkingManager *networkManager = services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
-        if (emailLength < 3 || emailLength > 254 || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
+        if (emailLength < EMAIL_LENGTH_MIN || emailLength > EMAIL_LENGTH_MAX || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidEmailLengthError);
 
         std::string email(
@@ -62,7 +62,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
         size_t passwordLength = static_cast<uint8_t>(client.buf[passwordLengthOffset]);
         size_t passwordOffset = passwordLengthOffset + PASSWORD_LENGTH_SIZE;
 
-        if (passwordLength < 8 || passwordLength > 254 || client.buf.size() < passwordOffset + passwordLength)
+        if (passwordLength < PASSWORD_LENGTH_MIN || passwordLength > PASSWORD_LENGTH_MAX || client.buf.size() < passwordOffset + passwordLength)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidPasswordLengthError);
         std::string password(
             reinterpret_cast<const char *>(&client.buf[passwordOffset]),

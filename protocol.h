@@ -10,6 +10,10 @@ const size_t HEADER_OFFSET = EXPECTED_SIZE_BYTES;
 const size_t TIME_STAMP_OFFSET = HEADER_OFFSET + HEAD_SIZE;
 
 const size_t USERNAME_LENGTH_MAX = 20;
+const size_t PASSWORD_LENGTH_MAX = 254;
+const size_t EMAIL_LENGTH_MAX = 254;
+const size_t PASSWORD_LENGTH_MIN = 8;
+const size_t EMAIL_LENGTH_MIN = 5;
 
 class Protocol
 {
