@@ -70,7 +70,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
 
         size_t usernameOffset = passwordOffset + passwordLength;
         size_t usernameLength = expectedSize - usernameOffset;
-        if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX)
+        if (usernameLength < USERNAME_LENGTH_MIN || usernameLength > USERNAME_LENGTH_MAX)
                 return networkManager->sendResponseCode(client, ResponseCode::emailAccountInvalidUsernameLengthError);
         std::string username(
             reinterpret_cast<const char *>(&client.buf[usernameOffset]),

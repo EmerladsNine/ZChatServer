@@ -77,7 +77,7 @@ void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services 
         const size_t USERNAME_OFFSET = USERNAME_LENGTH_OFFSET + USERNAME_LENGTH_SIZE;
         // Parse.
         uint8_t usernameLength = static_cast<uint8_t>(client.buf[USERNAME_LENGTH_OFFSET]);
-        if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX || client.buf.size() < USERNAME_OFFSET + usernameLength)
+        if (usernameLength < USERNAME_LENGTH_MIN || usernameLength > USERNAME_LENGTH_MAX || client.buf.size() < USERNAME_OFFSET + usernameLength)
                 return networkManager->sendResponseCode(client, ResponseCode::googleSignUpInvalidUsernameLengthError);
         std::string username(
             reinterpret_cast<const char *>(&client.buf[USERNAME_OFFSET]),

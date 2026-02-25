@@ -9,7 +9,7 @@ void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Ser
         const size_t USERNAME_OFFSET = 3;
         size_t usernameLength = expectedSize - USERNAME_OFFSET;
 
-        if (usernameLength == 0 || usernameLength > USERNAME_LENGTH_MAX)
+        if (usernameLength < USERNAME_LENGTH_MIN || usernameLength > USERNAME_LENGTH_MAX)
         {
                 return networkManager->sendSearchResponseCode(client, SearchResponseCode::NotFound);
         }
