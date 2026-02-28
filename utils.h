@@ -20,9 +20,9 @@ T bigEndianToInt(std::vector<char> &buffer, int start)
 {
         T val = 0;
         int j = 0;
-        for (int i = sizeof(T) - 1; i != -1; i--)
+        for (int i = 0; i != sizeof(T); i++)
         {
-                val |= buffer[start + j] << (i * 8);
+                val |= static_cast<T>(static_cast<unsigned char>(buffer[start + i])) << ((sizeof(T) -1 -i) * 8);
                 j++;
         }
         return val;

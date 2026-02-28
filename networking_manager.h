@@ -5,8 +5,8 @@
 #include <arpa/inet.h>
 #include <cstdio>
 #include <iostream>
-#include "response_code.h"
-#include "searchResponseCode.h"
+#include "auth_response_code.h"
+#include "search_response_code.h"
 
 class Client;
 class Services;
@@ -25,7 +25,7 @@ public:
         void waitForReadableSockets();
         void acceptPendingClients();
         bool isReadable(int client_fd);
-        void sendResponseCode(Client &client,ResponseCode responseCode);
+        void sendAuthResponseCode(Client &client,AuthResponseCode responseCode);
         void sendSearchResponseCode(Client &client,SearchResponseCode responseCode);
         std::vector<Client> clientsConnected;
         ~NetworkingManager();

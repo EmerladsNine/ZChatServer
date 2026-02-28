@@ -31,7 +31,6 @@ bool Protocol::parseUnit(Client &client, Services &services)
         size_t expectedSize;
         if (!getExpectedSize(client, expectedSize))
                 return false;
-
         if (client.buf.size() < expectedSize)
                 return false;
 
@@ -101,6 +100,11 @@ void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services
         // Insertion of timestamp
         std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
         packet.insert(packet.begin() + TIME_STAMP_OFFSET, timeStamp.begin(), timeStamp.end());
+
+        // send ok to the sender client.
+        std::vector<char> okPacket;
+        okPacket.push_back(UnitType::normalMessageResponseCode);
+        services.networkingManager->secure_send(client, okPacket);
 
         // Broadcasting
         for (Client &other : services.networkingManager->clientsConnected)

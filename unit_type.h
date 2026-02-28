@@ -7,10 +7,11 @@ enum UnitType : uint8_t
         normalMessage = 2,
         emailSignIn = 3,
         emailSignUp = 4,
-        responseCode = 5,
+        authResponseCode = 5,
         googleSignIn = 6,
         googleSignUp = 7,
         searchWithUsername = 8,
         searchWithId = 9,
-        searchResponseCode = 10
+        searchResponseCode = 10,
+        normalMessageResponseCode = 11,
 };

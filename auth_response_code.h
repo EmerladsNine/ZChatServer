@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-enum ResponseCode : uint8_t
+enum AuthResponseCode : uint8_t
 {
         emailAccountCreated = 0,
         emailAccountEmailExistError = 1,
