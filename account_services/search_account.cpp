@@ -5,7 +5,7 @@
 
 void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Services &services)
 {
-        NetworkingManager *networkManager = services.networkingManager;
+        NetworkingManager *networkManager = &services.networkingManager;
         const size_t USERNAME_OFFSET = 3;
         size_t usernameLength = expectedSize - USERNAME_OFFSET;
 
@@ -16,7 +16,7 @@ void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Ser
         std::string username(reinterpret_cast<const char *>(&client.buf[USERNAME_OFFSET]), usernameLength);
         Account account;
         bool isFound;
-        if (!services.db->getAccountFromUsername(username.c_str(), account, isFound))
+        if (!services.db.getAccountFromUsername(username.c_str(), account, isFound))
         {
                 return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
         }
@@ -38,7 +38,7 @@ void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Ser
 
 void AccountHandler::SearchWithId(Client &client, size_t expectedSize, Services &services)
 {
-        NetworkingManager *networkManager = services.networkingManager;
+        NetworkingManager *networkManager = &services.networkingManager;
         const size_t ID_OFFSET = 3;
         const size_t ID_LENGTH = 4;
         if (expectedSize < ID_OFFSET + ID_LENGTH)
@@ -46,7 +46,7 @@ void AccountHandler::SearchWithId(Client &client, size_t expectedSize, Services 
         uint32_t id = bigEndianToInt<uint32_t>(client.buf, ID_OFFSET);
         Account account;
         bool isFound;
-        if (!services.db->getAccountFromId(id, account, isFound))
+        if (!services.db.getAccountFromId(id, account, isFound))
         {
                 return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
         }
