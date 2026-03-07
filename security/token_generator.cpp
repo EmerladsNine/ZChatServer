@@ -10,9 +10,9 @@ TokenGenerator::~TokenGenerator()
 {
 }
 
-std::vector<std::uint8_t> TokenGenerator::secureRandomBytes(size_t n)
+std::vector<char> TokenGenerator::secureRandomBytes(size_t n)
 {
-    std::vector<uint8_t> bytes;
+    std::vector<char> bytes;
     bytes.reserve(n);
     while (bytes.size() < n)
     {
@@ -26,12 +26,12 @@ std::vector<std::uint8_t> TokenGenerator::secureRandomBytes(size_t n)
     return bytes;
 }
 
-std::vector<std::uint8_t> TokenGenerator::generateAccessToken()
+std::vector<char> TokenGenerator::generateAccessToken()
 {
         return secureRandomBytes(32);
 }
 
-std::vector<std::uint8_t> TokenGenerator::generateRefreshToken()
+std::vector<char> TokenGenerator::generateRefreshToken()
 {
         return secureRandomBytes(64);
 }

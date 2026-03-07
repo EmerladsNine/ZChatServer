@@ -37,13 +37,19 @@ bool Database::check(int rc, const char *context)
         return true;
 }
 
+void Database::cleanup_stmt(sqlite3_stmt *stmt)
+{
+        sqlite3_reset(stmt);
+        sqlite3_clear_bindings(stmt);
+}
+
 Database::~Database()
 {
         sqlite3_finalize(insert_account_stmt);
         sqlite3_finalize(check_email_exists_stmt);
         sqlite3_finalize(get_account_from_username_stmt);
         sqlite3_finalize(get_account_from_id_stmt);
-        sqlite3_finalize(get_pass_hash_from_email_stmt);
+        sqlite3_finalize(get_account_from_email_stmt);
         sqlite3_finalize(check_google_id_exists_stmt);
         sqlite3_close(db);
 }

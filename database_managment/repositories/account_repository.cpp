@@ -1,13 +1,6 @@
 #include "../database.h"
 #include <iostream>
 
-void cleanup_stmt(sqlite3_stmt *stmt)
-{
-        sqlite3_reset(stmt);
-        sqlite3_clear_bindings(stmt);
-}
-
-
 bool Database::prepareAccountRepository()
 {
         const char *createAccountTableSQL =
@@ -24,7 +17,7 @@ bool Database::prepareAccountRepository()
 
         if (!prepare(insert_account_stmt,
                      "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4 );",
-                     "sql insert email statement prepare error"))
+                     "sql insert account statement prepare error"))
                 return false;
         if (!prepare(check_email_exists_stmt,
                      "SELECT email FROM accounts WHERE email = ?1 LIMIT 1;",
@@ -38,9 +31,9 @@ bool Database::prepareAccountRepository()
                      "SELECT * FROM accounts WHERE id = ?1 LIMIT 1;",
                      "sql get account from id statement prepare error"))
                 return false;
-        if (!prepare(get_pass_hash_from_email_stmt,
-                     "SELECT passwordHash FROM accounts WHERE email = ?1 LIMIT 1;",
-                     "sql get passwordHash statement prepare error"))
+        if (!prepare(get_account_from_email_stmt,
+                     "SELECT * FROM accounts WHERE email = ?1 LIMIT 1;",
+                     "sql get account from email statement prepare error"))
                 return false;
         if (!prepare(check_google_id_exists_stmt,
                      "SELECT googleId FROM accounts WHERE googleId = ?1 LIMIT 1;",
@@ -49,42 +42,6 @@ bool Database::prepareAccountRepository()
         return true;
 }
 
-std::string Database::getPasswordHash(const char *email, bool &found, bool &status)
-{
-        status = false;
-        found = false;
-        if (!valid)
-                return {};
-
-        int rc = sqlite3_bind_text(get_pass_hash_from_email_stmt, 1, email, -1, SQLITE_TRANSIENT);
-        if (rc != SQLITE_OK)
-                goto error;
-        rc = sqlite3_step(get_pass_hash_from_email_stmt);
-        if (rc == SQLITE_ROW)
-        {
-                if (sqlite3_column_type(get_pass_hash_from_email_stmt, 0) != SQLITE_TEXT)
-                        goto error;
-                const unsigned char *text = sqlite3_column_text(get_pass_hash_from_email_stmt, 0);
-                int len = sqlite3_column_bytes(get_pass_hash_from_email_stmt, 0);
-
-                std::string hash(reinterpret_cast<const char *>(text), len);
-                found = true;
-                status = true;
-                cleanup_stmt(get_pass_hash_from_email_stmt);
-                return hash;
-        }
-        else if (rc == SQLITE_DONE)
-        {
-                found = false;
-                status = true;
-                cleanup_stmt(get_pass_hash_from_email_stmt);
-                return {};
-        }
-error:
-        std::cerr << "SQLite error (" << rc << ") on Database::getPasswordHash : " << sqlite3_errmsg(db) << std::endl;
-        cleanup_stmt(get_pass_hash_from_email_stmt);
-        return {};
-}
 
 void Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, bool &status)
 {
@@ -326,5 +283,21 @@ bool Database::getAccountFromId(int id, Account &accountOut, bool &isFound)
 error:
         std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromId : " << sqlite3_errmsg(db) << std::endl;
         cleanup_stmt(get_account_from_id_stmt);
+        return false;
+}
+
+bool Database::getAccountFromEmail(const char *email,Account &accountOut,bool &isFound)
+{
+        isFound = false;
+        if (!valid)
+                return false;
+
+        int rc = sqlite3_bind_text(get_account_from_email_stmt, 1, email, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                goto error;
+        return getAccount(get_account_from_email_stmt, accountOut, isFound);
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromEmail : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(get_account_from_email_stmt);
         return false;
 }

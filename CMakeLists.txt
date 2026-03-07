@@ -24,7 +24,9 @@ add_executable(ZChatServer
         ./account_services/email_auth.cpp 
         ./account_services/google_auth.cpp 
         ./account_services/search_account.cpp 
-        ./security/argon_hash.cpp 
+        ./security/hashing/argon_hash.cpp 
+        ./security/hashing/sha256_hash.cpp
+        ./security/hashing/hash_manager.cpp 
         ./security/token_generator.cpp
         ./database_managment/data/account.cpp
         ./database_managment/repositories/account_repository.cpp

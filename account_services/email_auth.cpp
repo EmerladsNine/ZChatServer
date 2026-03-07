@@ -25,25 +25,32 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
 
         // Email and Password Check
         bool emailExists;
-        bool status;
-        std::string passHash = services.db.getPasswordHash(email.c_str(), emailExists, status);
+        Account account;
+        bool status = services.db.getAccountFromEmail(email.c_str(), account, emailExists);
         if (!status)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!emailExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInEmailNotExistError);
 
         int isEqual;
-        if (!services.argonHash.verifyPassword(password.c_str(), password.length(), passHash.c_str(), &isEqual))
+        if (!services.hashManager.argonHash.verifyPassword(password.c_str(), password.length(), account.passHash.c_str(), &isEqual))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!isEqual)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInPasswordIncorrectError);
 
         std::vector<char> packet;
         packet.push_back(AuthResponseCode::emailSignInDone);
-        std::vector<uint8_t> accessToken = services.tokenGen.generateAccessToken();
-        std::vector<uint8_t> refreshToken = services.tokenGen.generateRefreshToken();
+        std::vector<char> accessToken = services.tokenGen.generateAccessToken();
+        std::vector<char> refreshToken = services.tokenGen.generateRefreshToken();
+        std::string accessTokenText{accessToken.begin(), accessToken.end()};
+        std::string refreshTokenText{refreshToken.begin(), refreshToken.end()};
+        std::string refreshTokenHash;
+        std::string accessTokenHash;
+        services.hashManager.argonHash.Hash(refreshTokenText, refreshTokenHash);
+        services.hashManager.sha256Hash.Hash(accessTokenText, accessTokenHash);
+        services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data());
 
-        //Todo store session tokens
+        // Todo store session tokens
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);
@@ -101,7 +108,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
 
         // Hash
         std::string hashedPassword;
-        if (!services.argonHash.Hash(password, hashedPassword))
+        if (!services.hashManager.argonHash.Hash(password, hashedPassword))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
         // Create.

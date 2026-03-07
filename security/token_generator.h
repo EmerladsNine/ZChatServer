@@ -8,7 +8,7 @@ public:
         TokenGenerator();
         ~TokenGenerator();
         std::random_device rd;
-        std::vector<std::uint8_t> secureRandomBytes(size_t n);
-        std::vector<std::uint8_t> generateAccessToken();
-        std::vector<std::uint8_t> generateRefreshToken();
+        std::vector<char> secureRandomBytes(size_t n);
+        std::vector<char> generateAccessToken();
+        std::vector<char> generateRefreshToken();
 };
