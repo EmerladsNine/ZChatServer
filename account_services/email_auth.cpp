@@ -1,6 +1,7 @@
 #include "../handlers/account_handler.h"
 #include "../protocol.h"
 #include "../unit_type.h"
+#include "../utils.h"
 
 void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &services)
 {
@@ -38,19 +39,22 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
         if (!isEqual)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInPasswordIncorrectError);
 
-        std::vector<char> packet;
-        packet.push_back(AuthResponseCode::emailSignInDone);
-        std::vector<char> accessToken = services.tokenGen.generateAccessToken();
-        std::vector<char> refreshToken = services.tokenGen.generateRefreshToken();
-        std::string accessTokenText{accessToken.begin(), accessToken.end()};
-        std::string refreshTokenText{refreshToken.begin(), refreshToken.end()};
-        std::string refreshTokenHash;
+        // Generate Session.
+        std::vector<char> accessToken;
+        std::vector<char> refreshToken;
         std::string accessTokenHash;
-        services.hashManager.argonHash.Hash(refreshTokenText, refreshTokenHash);
-        services.hashManager.sha256Hash.Hash(accessTokenText, accessTokenHash);
-        services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data());
+        std::string refreshTokenHash;
+        if (!services.tokenGen.generateSession(services, accessToken, refreshToken, accessTokenHash, refreshTokenHash))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
+        if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
 
-        // Todo store session tokens
+        // Send Session.
+        std::vector<char> packet;
+        packet.push_back(UnitType::authResponseCode);
+        packet.push_back(AuthResponseCode::emailSignInDone);
+        std::vector<char> idVec = intToBigEndian<int>(account.id);
+        packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);
@@ -89,8 +93,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
             reinterpret_cast<const char *>(&client.buf[usernameOffset]),
             usernameLength);
 
-        // Creating account.
-        // Check Email.
+        // Check Email And Username.
         bool emailExists;
         bool status;
         services.db.objExists(services.db.check_email_exists_stmt, email.c_str(), emailExists, status);
@@ -98,7 +101,6 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         if (emailExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountEmailExistError);
-        // Check Username.
         bool usernameExists;
         services.db.objExists(services.db.get_account_from_username_stmt, username.c_str(), usernameExists, status);
         if (!status)
@@ -106,15 +108,35 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
         if (usernameExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountUsernameExistError);
 
-        // Hash
+        // Hash Password
         std::string hashedPassword;
         if (!services.hashManager.argonHash.Hash(password, hashedPassword))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
-        // Create.
+        // Create Email Account.
         if (!services.db.insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        int id;
+        if (!services.db.getLastInsertedAccountId(id))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
-        // Todo send a session id
-        return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreated);
+        // Generate Session.
+        std::vector<char> accessToken;
+        std::vector<char> refreshToken;
+        std::string accessTokenHash;
+        std::string refreshTokenHash;
+        if (!services.tokenGen.generateSession(services, accessToken, refreshToken, accessTokenHash, refreshTokenHash))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+
+        // Send Session.
+        std::vector<char> packet;
+        packet.push_back(UnitType::authResponseCode);
+        packet.push_back(AuthResponseCode::emailAccountCreated);
+        std::vector<char> idVec = intToBigEndian<int>(id);
+        packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), accessToken.begin(), accessToken.end());
+        packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
+        networkManager->secure_send(client, packet);
 }

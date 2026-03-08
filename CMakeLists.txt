@@ -19,7 +19,6 @@ add_executable(ZChatServer
         ./utils.cpp 
         ./networking_manager.cpp 
         ./protocol.cpp 
-        ./database_managment/database.cpp 
         ./services.cpp 
         ./account_services/email_auth.cpp 
         ./account_services/google_auth.cpp 
@@ -28,6 +27,7 @@ add_executable(ZChatServer
         ./security/hashing/sha256_hash.cpp
         ./security/hashing/hash_manager.cpp 
         ./security/token_generator.cpp
+        ./database_managment/database.cpp 
         ./database_managment/data/account.cpp
         ./database_managment/repositories/account_repository.cpp
         ./database_managment/repositories/session_repository.cpp

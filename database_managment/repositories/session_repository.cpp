@@ -21,6 +21,10 @@ bool Database::prepareSessionRepository()
                      ");",
                      "sql insert session statement prepare error"))
                 return false;
+        if (!prepare(check_session_exist_stmt,
+                     "SELECT * FROM sessions WHERE accessTokenHash = ?1 OR refreshTokenHash = ?2 LIMIT 1;",
+                     "sql check_session_exist_statement prepare error"))
+                return false;
         return true;
 }
 
@@ -50,5 +54,42 @@ bool Database::insertSession(int userId,std::string accessTokenHash,const char* 
                 return fail(rc, 4);
 
         cleanup_stmt(insert_session_stmt);
+        return true;
+}
+
+bool Database::sessionExists(std::string accessTokenHash, const char *refreshTokenHash,bool &result)
+{
+        if (!valid)
+                return false;
+        auto fail = [&](int rc, int stepIndex)
+        {
+                std::cerr << "SQLite error (" << rc << ") on sessionExists , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(check_session_exist_stmt);
+                return false;
+        };
+
+        int rc = sqlite3_bind_blob(check_session_exist_stmt, 1, accessTokenHash.data(), accessTokenHash.size(), SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                return fail(rc, 1);
+        rc = sqlite3_bind_text(check_session_exist_stmt, 2, refreshTokenHash, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                return fail(rc, 2);
+
+        rc = sqlite3_step(check_session_exist_stmt);
+        if (rc == SQLITE_ROW)
+        {
+                result = true;
+        }
+        else if (rc == SQLITE_DONE)
+        {
+                result = false;
+        }
+        else
+        {
+                std::cerr << "SQLite error (" << rc << ") on Database::sessionExists sqlite3_step : " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(check_session_exist_stmt);
+                return false;
+        }
+        cleanup_stmt(check_session_exist_stmt);
         return true;
 }
