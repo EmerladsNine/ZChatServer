@@ -65,8 +65,34 @@ void AccountHandler::GoogleSignIn(Client &client, size_t expectedSize, Services 
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!googleIdExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthRequireSignUp);
+<<<<<<< Updated upstream
         // Todo send a session id.
         return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthSuccessful);
+=======
+
+        // Generate Session.
+        std::vector<char> accessToken;
+        std::vector<char> refreshToken;
+        std::string accessTokenHash;
+        std::string refreshTokenHash;
+        if (!services.tokenGen.generateSession(services, accessToken, refreshToken, accessTokenHash, refreshTokenHash))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+
+        // Authenticate client.
+        client.authenticate(services, account.id, accessTokenHash);
+
+        // Send Session.
+        std::vector<char> packet;
+        packet.push_back(UnitType::authResponseCode);
+        packet.push_back(AuthResponseCode::googleAuthSuccessful);
+        std::vector<char> idVec = intToBigEndian<int>(account.id);
+        packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), accessToken.begin(), accessToken.end());
+        packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
+        networkManager->secure_send(client, packet);
+>>>>>>> Stashed changes
 }
 
 void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services &services)
@@ -114,5 +140,26 @@ void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services 
         if (!services.db->insertGoogleAccount(username.c_str(), googleId.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
-        return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthSuccessful);
+        // Generate Session.
+        std::vector<char> accessToken;
+        std::vector<char> refreshToken;
+        std::string accessTokenHash;
+        std::string refreshTokenHash;
+        if (!services.tokenGen.generateSession(services, accessToken, refreshToken, accessTokenHash, refreshTokenHash))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+
+        // Authenticate client.
+        client.authenticate(services, id, accessTokenHash);
+
+        // Send Session.
+        std::vector<char> packet;
+        packet.push_back(UnitType::authResponseCode);
+        packet.push_back(AuthResponseCode::googleAuthSuccessful);
+        std::vector<char> idVec = intToBigEndian<int>(id);
+        packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), accessToken.begin(), accessToken.end());
+        packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
+        networkManager->secure_send(client, packet);
 }

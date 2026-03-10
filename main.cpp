@@ -35,9 +35,10 @@ int main()
 
                 for (Client &client : disconnected)
                 {
-                        networkingManager.clientsConnected.erase(
-                            std::remove(networkingManager.clientsConnected.begin(), networkingManager.clientsConnected.end(), client),
-                            networkingManager.clientsConnected.end());
+                        client.disconnect(services);
+                        services.networkingManager.clientsConnected.erase(
+                            std::remove(services.networkingManager.clientsConnected.begin(), services.networkingManager.clientsConnected.end(), client),
+                            services.networkingManager.clientsConnected.end());
                 }
         }
 }

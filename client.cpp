@@ -33,3 +33,20 @@ void Client::read(Services &services)
                         return;
         }
 }
+
+void Client::authenticate(Services &services, uint32_t id, std::string &accessTokenHash)
+{
+        services.networkingManager.onlineUsers[id] = this;
+        isAuthenticated = true;
+        session.userid = id;
+        session.accessTokenHash = accessTokenHash;
+}
+
+void Client::disconnect(Services &services)
+{
+        if (isAuthenticated)
+        {
+                services.networkingManager.onlineUsers.erase(session.userid);
+                isAuthenticated = false;
+        }
+}

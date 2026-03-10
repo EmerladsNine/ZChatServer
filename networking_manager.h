@@ -7,6 +7,7 @@
 #include <iostream>
 #include "auth_response_code.h"
 #include "search_response_code.h"
+#include <unordered_map>
 
 class Client;
 class Services;
@@ -28,5 +29,6 @@ public:
         void sendAuthResponseCode(Client &client,AuthResponseCode responseCode);
         void sendSearchResponseCode(Client &client,SearchResponseCode responseCode);
         std::vector<Client> clientsConnected;
+        std::unordered_map<int,Client*> onlineUsers;
         ~NetworkingManager();
 };
