@@ -5,12 +5,6 @@
 
 ArgonHash::ArgonHash()
 {
-        if (sodium_init() < 0)
-        {
-                std::cerr << "Failed To Initialize Sodium" << std::endl;
-                return;
-        }
-        valid = true;
 }
 
 ArgonHash::~ArgonHash()
@@ -23,7 +17,7 @@ int ArgonHash::Hash(const std::string &password, std::string &HashedPasswordOut)
                 return 0;
         HashedPasswordOut.resize(crypto_pwhash_STRBYTES);
         if (crypto_pwhash_str(
-                HashedPasswordOut.data(), password.c_str(), password.length(),
+                HashedPasswordOut.data(), password.data(), password.size(),
                 crypto_pwhash_OPSLIMIT_MODERATE,
                 crypto_pwhash_MEMLIMIT_MODERATE) != 0)
         {

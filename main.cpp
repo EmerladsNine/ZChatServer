@@ -6,25 +6,18 @@
 int main()
 {
         const int PORT = 9999;
-        Database db;
-        NetworkingManager networkingManager;
-        ArgonHash argonHash;
-
         Services services;
-        services.db = &db;
-        services.networkingManager = &networkingManager;
-        services.argonHash = &argonHash;
 
-        networkingManager.init(PORT);
+        services.networkingManager.init(PORT);
         while (true)
         {
-                networkingManager.waitForReadableSockets();
-                networkingManager.acceptPendingClients(); // Checks if there is any new client that wants to connect.
+                services.networkingManager.waitForReadableSockets();
+                services.networkingManager.acceptPendingClients(); // Checks if there is any new client that wants to connect.
 
                 std::vector<Client> disconnected;
-                for (Client &client : networkingManager.clientsConnected)
+                for (Client &client : services.networkingManager.clientsConnected)
                 {
-                        if (!networkingManager.isReadable(client.fd))
+                        if (!services.networkingManager.isReadable(client.fd))
                                 continue;
 
                         client.read(services);
@@ -35,9 +28,9 @@ int main()
 
                 for (Client &client : disconnected)
                 {
-                        networkingManager.clientsConnected.erase(
-                            std::remove(networkingManager.clientsConnected.begin(), networkingManager.clientsConnected.end(), client),
-                            networkingManager.clientsConnected.end());
+                        services.networkingManager.clientsConnected.erase(
+                            std::remove(services.networkingManager.clientsConnected.begin(), services.networkingManager.clientsConnected.end(), client),
+                            services.networkingManager.clientsConnected.end());
                 }
         }
 }
