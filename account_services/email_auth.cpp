@@ -1,14 +1,14 @@
 #include "../handlers/account_handler.h"
 #include "../protocol.h"
 #include "../unit_type.h"
-
+#include "../utils.h"
 
 void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &services)
 {
         const uint16_t EMAIN_LENGTH_SIZE = 1;
         const size_t EMAIL_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
-        NetworkingManager *networkManager = services.networkingManager;
+        NetworkingManager *networkManager = &services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < EMAIL_LENGTH_MIN || emailLength > EMAIL_LENGTH_MAX || client.buf.size() < EMAIL_OFFSET + emailLength)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountInvalidEmailLengthError);
@@ -26,23 +26,19 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
 
         // Email and Password Check
         bool emailExists;
-        bool status;
-        std::string passHash = services.db->getPasswordHash(email.c_str(), emailExists, status);
+        Account account;
+        bool status = services.db.getAccountFromEmail(email.c_str(), account, emailExists);
         if (!status)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!emailExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInEmailNotExistError);
 
         int isEqual;
-        if (!services.argonHash->verifyPassword(password.c_str(), password.length(), passHash.c_str(), &isEqual))
+        if (!services.hashManager.argonHash.verifyPassword(password.c_str(), password.length(), account.passHash.c_str(), &isEqual))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!isEqual)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInPasswordIncorrectError);
 
-<<<<<<< Updated upstream
-        // Todo send a session id
-        networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInDone);
-=======
         // Generate Session.
         std::vector<char> accessToken;
         std::vector<char> refreshToken;
@@ -65,7 +61,6 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);
->>>>>>> Stashed changes
 }
 
 void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &services)
@@ -74,7 +69,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
         const uint16_t PASSWORD_LENGTH_SIZE = 1;
         const size_t EMAIL_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t EMAIL_OFFSET = EMAIL_LENGTH_OFFSET + EMAIN_LENGTH_SIZE;
-        NetworkingManager *networkManager = services.networkingManager;
+        NetworkingManager *networkManager = &services.networkingManager;
         uint8_t emailLength = static_cast<uint8_t>(client.buf[EMAIL_LENGTH_OFFSET]);
         if (emailLength < EMAIL_LENGTH_MIN || emailLength > EMAIL_LENGTH_MAX || client.buf.size() < EMAIL_OFFSET + emailLength + PASSWORD_LENGTH_SIZE)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountInvalidEmailLengthError);
@@ -101,30 +96,31 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
             reinterpret_cast<const char *>(&client.buf[usernameOffset]),
             usernameLength);
 
-        // Creating account.
-        // Check Email.
+        // Check Email And Username.
         bool emailExists;
         bool status;
-        services.db->objExists(services.db->check_email_exists_stmt, email.c_str(), emailExists, status);
+        services.db.objExists(services.db.check_email_exists_stmt, email.c_str(), emailExists, status);
         if (!status)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         if (emailExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountEmailExistError);
-        // Check Username.
         bool usernameExists;
-        services.db->objExists(services.db->get_account_from_username_stmt, username.c_str(), usernameExists, status);
+        services.db.objExists(services.db.get_account_from_username_stmt, username.c_str(), usernameExists, status);
         if (!status)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         if (usernameExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountUsernameExistError);
 
-        // Hash
+        // Hash Password
         std::string hashedPassword;
-        if (!services.argonHash->Hash(password, hashedPassword))
+        if (!services.hashManager.argonHash.Hash(password, hashedPassword))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
-        // Create.
-        if (!services.db->insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
+        // Create Email Account.
+        if (!services.db.insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        int id;
+        if (!services.db.getLastInsertedAccountId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
         // Generate Session.
