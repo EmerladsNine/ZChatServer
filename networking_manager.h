@@ -26,9 +26,10 @@ public:
         void waitForReadableSockets();
         void acceptPendingClients();
         bool isReadable(int client_fd);
-        void sendAuthResponseCode(Client &client,AuthResponseCode responseCode);
-        void sendSearchResponseCode(Client &client,SearchResponseCode responseCode);
+        void sendAuthResponseCode(Client &client, AuthResponseCode responseCode);
+        void sendNotAuthenticated(Client &client);
+        void sendSearchResponseCode(Client &client, SearchResponseCode responseCode);
         std::vector<Client> clientsConnected;
-        std::unordered_map<int,Client*> onlineUsers;
+        std::unordered_map<int, Client *> onlineUsers;
         ~NetworkingManager();
 };

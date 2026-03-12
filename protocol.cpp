@@ -89,28 +89,36 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
 
 void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services &services)
 {
-        std::vector<char> packet(client.buf.begin(), client.buf.begin() + expectedSize);
 
-        // Update size in new packet
-        size_t newPacketSize = (expectedSize - EXPECTED_SIZE_BYTES) + TIME_STAMP_BYTES;
-        std::vector<char> size = intToBigEndian<std::uint16_t>(newPacketSize);
-        std::copy(size.begin(), size.end(), packet.begin());
+        const size_t RECEIVER_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
+        const size_t RECEIVER_ID_SIZE = 4;
+        const size_t MESSAGE_BODY_OFFSET = RECEIVER_ID_OFFSET + RECEIVER_ID_SIZE;
 
-        // Insertion of timestamp
+        if (!client.isAuthenticated)
+                return services.networkingManager.sendNotAuthenticated(client);
+        uint32_t receiverId = bigEndianToInt<std::uint32_t>(client.buf, RECEIVER_ID_OFFSET);
+        std::cout << receiverId << std::endl;
+        std::vector<char> messageBody(client.buf.begin() + MESSAGE_BODY_OFFSET, client.buf.begin() + expectedSize);
+        std::vector<char> senderId = intToBigEndian<std::uint32_t>(client.session.userid);
         std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
-        packet.insert(packet.begin() + TIME_STAMP_OFFSET, timeStamp.begin(), timeStamp.end());
+        std::vector<char> packet;
+        packet.reserve(HEAD_SIZE + timeStamp.size() + messageBody.size());
+        packet.push_back(UnitType::normalMessage);
+        packet.insert(packet.end(), senderId.begin(), senderId.end());
+        packet.insert(packet.end(), timeStamp.begin(), timeStamp.end());
+        packet.insert(packet.end(), messageBody.begin(), messageBody.end());
 
         // send ok to the sender client.
         std::vector<char> okPacket;
         okPacket.push_back(UnitType::normalMessageResponseCode);
         services.networkingManager.secure_send(client, okPacket);
 
-        // Broadcasting
-        for (Client &other : services.networkingManager.clientsConnected)
+        // Find receiver and send
+        auto it = services.networkingManager.onlineUsers.find(receiverId);
+        if (it != services.networkingManager.onlineUsers.end())
         {
-                if (other.fd != client.fd)
-                {
-                        services.networkingManager.safe_send(other, packet);
-                }
+                std::cout << "Sending" << std::endl;
+                Client *receiverClient = it->second;
+                services.networkingManager.secure_send(*receiverClient, packet);
         }
 }

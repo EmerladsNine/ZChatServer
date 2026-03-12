@@ -36,6 +36,7 @@ void Client::read(Services &services)
 
 void Client::authenticate(Services &services, uint32_t id, std::string &accessTokenHash)
 {
+        std::cout << "Authenticated : " << id << std::endl;
         services.networkingManager.onlineUsers[id] = this;
         isAuthenticated = true;
         session.userid = id;

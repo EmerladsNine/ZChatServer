@@ -123,3 +123,10 @@ void NetworkingManager::sendSearchResponseCode(Client &client, SearchResponseCod
         packet.push_back(responseCode);
         secure_send(client, packet);
 }
+
+void NetworkingManager::sendNotAuthenticated(Client &client)
+{
+        std::vector<char> packet;
+        packet.push_back(UnitType::notAuthenticated);
+        secure_send(client, packet);
+}
