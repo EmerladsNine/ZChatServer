@@ -36,11 +36,17 @@ void Client::read(Services &services)
 
 void Client::authenticate(Services &services, uint32_t id, std::string &accessTokenHash)
 {
-        std::cout << "Authenticated : " << id << std::endl;
+        if (isAuthenticated)
+        {
+                std::cout << "LOG OUT : " << session.userid << std::endl;
+                services.networkingManager.onlineUsers.erase(session.userid);
+                isAuthenticated = false;
+        }
         services.networkingManager.onlineUsers[id] = this;
         isAuthenticated = true;
         session.userid = id;
         session.accessTokenHash = accessTokenHash;
+        std::cout << "Authenticated : " << id << std::endl;
 }
 
 void Client::disconnect(Services &services)
