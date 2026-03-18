@@ -43,10 +43,6 @@ bool Database::prepareAccountRepository()
                      "SELECT googleId FROM accounts WHERE googleId = ?1 LIMIT 1;",
                      "sql check googleId statement prepare error"))
                 return false;
-        if (!prepare(get_last_inserted_account_id_stmt,
-                     "SELECT last_insert_rowid();",
-                     "sql get lastInsertedAccountId statement prepare error"))
-                return false;
         return true;
 }
 
@@ -321,24 +317,5 @@ bool Database::getAccountFromGoogleId(const char *googleId, Account &accountOut,
 error:
         std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromEmail : " << sqlite3_errmsg(db) << std::endl;
         cleanup_stmt(get_account_from_google_id_stmt);
-        return false;
-}
-
-bool Database::getLastInsertedAccountId(int &id)
-{
-        if (!valid)
-                return false;
-        int rc = sqlite3_step(get_last_inserted_account_id_stmt);
-        if (rc == SQLITE_ROW)
-        {
-                if (sqlite3_column_type(get_last_inserted_account_id_stmt, 0) != SQLITE_INTEGER)
-                        goto error;
-                id = sqlite3_column_int(get_last_inserted_account_id_stmt, 0);
-                cleanup_stmt(get_last_inserted_account_id_stmt);
-                return true;
-        }
-error:
-        std::cerr << "SQLite error (" << rc << ") on Database::getLastInsertedAccountId : " << sqlite3_errmsg(db) << std::endl;
-        cleanup_stmt(get_last_inserted_account_id_stmt);
         return false;
 }

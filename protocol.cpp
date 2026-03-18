@@ -4,6 +4,8 @@
 #include <chrono>
 #include "database_managment/database.h"
 #include "handlers/account_handler.h"
+#include "handlers/token_handler.h"
+
 using namespace std::chrono;
 
 Protocol::Protocol()
@@ -85,6 +87,10 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         {
                 AccountHandler::SearchWithId(client, expectedSize, services);
         }
+        else if (head == UnitType::useAccessToken)
+        {
+                TokenHandler::useAccessToken(client, expectedSize, services);
+        }
 }
 
 void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services &services)
@@ -95,7 +101,7 @@ void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services
         const size_t MESSAGE_BODY_OFFSET = RECEIVER_ID_OFFSET + RECEIVER_ID_SIZE;
 
         if (!client.isAuthenticated)
-                return services.networkingManager.sendNotAuthenticated(client);
+                return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::NotAuthenticated);
         uint32_t receiverId = bigEndianToInt<std::uint32_t>(client.buf, RECEIVER_ID_OFFSET);
         std::cout << receiverId << std::endl;
         std::vector<char> messageBody(client.buf.begin() + MESSAGE_BODY_OFFSET, client.buf.begin() + expectedSize);

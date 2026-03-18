@@ -48,16 +48,28 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
+        int sessionId;
+        if (!services.db.getLastInsertedId(sessionId))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
+
+        Session session;
+        bool isFound;
+        if (!services.db.getSessionFromId(sessionId, session, isFound))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
+        if (!isFound)
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
 
         // Authenticate client.
-        client.authenticate(services, account.id, accessTokenHash);
+        client.authenticate(services, session);
 
         // Send Session.
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::emailSignInDone);
         std::vector<char> idVec = intToBigEndian<int>(account.id);
+        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);
@@ -120,7 +132,7 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
         if (!services.db.insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         int id;
-        if (!services.db.getLastInsertedAccountId(id))
+        if (!services.db.getLastInsertedId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
         // Generate Session.
@@ -132,16 +144,27 @@ void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        int sessionId;
+        if (!services.db.getLastInsertedId(sessionId))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        Session session;
+        bool isFound;
+        if (!services.db.getSessionFromId(sessionId, session, isFound))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
+        if (!isFound)
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
         // Authenticate client.
-        client.authenticate(services, id, accessTokenHash);
+        client.authenticate(services, session);
 
         // Send Session.
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::emailAccountCreated);
         std::vector<char> idVec = intToBigEndian<int>(id);
+        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);

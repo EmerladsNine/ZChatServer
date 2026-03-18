@@ -5,8 +5,9 @@
 #include <arpa/inet.h>
 #include <cstdio>
 #include <iostream>
-#include "auth_response_code.h"
-#include "search_response_code.h"
+#include "response_codes/auth_response_code.h"
+#include "response_codes/search_response_code.h"
+#include "response_codes/session_state_response_code.h"
 #include <unordered_map>
 
 class Client;
@@ -27,7 +28,7 @@ public:
         void acceptPendingClients();
         bool isReadable(int client_fd);
         void sendAuthResponseCode(Client &client, AuthResponseCode responseCode);
-        void sendNotAuthenticated(Client &client);
+        void sendSessionStateResponseCode(Client &client, SessionStateResponseCode responseCode);
         void sendSearchResponseCode(Client &client, SearchResponseCode responseCode);
         std::vector<Client> clientsConnected;
         std::unordered_map<int, Client *> onlineUsers;

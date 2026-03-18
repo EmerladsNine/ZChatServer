@@ -14,5 +14,6 @@ enum UnitType : uint8_t
         searchWithId = 9,
         searchResponseCode = 10,
         normalMessageResponseCode = 11,
-        notAuthenticated = 12
+        sessionStateResponseCode = 12,
+        useAccessToken = 13
 };

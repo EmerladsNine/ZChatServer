@@ -77,16 +77,27 @@ void AccountHandler::GoogleSignIn(Client &client, size_t expectedSize, Services 
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        int sessionId;
+        if (!services.db.getLastInsertedId(sessionId))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        Session session;
+        bool isFound;
+        if (!services.db.getSessionFromId(sessionId, session, isFound))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        if (!isFound)
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
         // Authenticate client.
-        client.authenticate(services, account.id, accessTokenHash);
+        client.authenticate(services, session);
 
         // Send Session.
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
         std::vector<char> idVec = intToBigEndian<int>(account.id);
+        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);
@@ -137,7 +148,7 @@ void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services 
         if (!services.db.insertGoogleAccount(username.c_str(), googleId.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         int id;
-        if (!services.db.getLastInsertedAccountId(id))
+        if (!services.db.getLastInsertedId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
         // Generate Session.
@@ -149,16 +160,28 @@ void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services 
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        int sessionId;
+        if (!services.db.getLastInsertedId(sessionId))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+
+        Session session;
+        bool isFound;
+        if (!services.db.getSessionFromId(sessionId, session, isFound))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+        if (!isFound)
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
         // Authenticate client.
-        client.authenticate(services, id, accessTokenHash);
+        client.authenticate(services, session);
 
         // Send Session.
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
         std::vector<char> idVec = intToBigEndian<int>(id);
+        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
+        packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
         packet.insert(packet.end(), refreshToken.begin(), refreshToken.end());
         networkManager->secure_send(client, packet);

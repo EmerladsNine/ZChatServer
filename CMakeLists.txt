@@ -20,7 +20,6 @@ add_executable(ZChatServer
         ./networking_manager.cpp 
         ./protocol.cpp 
         ./services.cpp
-        ./session.cpp
         ./account_services/email_auth.cpp 
         ./account_services/google_auth.cpp 
         ./account_services/search_account.cpp 
@@ -30,8 +29,10 @@ add_executable(ZChatServer
         ./security/token_generator.cpp
         ./database_managment/database.cpp 
         ./database_managment/data/account.cpp
+        ./database_managment/data/session.cpp
         ./database_managment/repositories/account_repository.cpp
         ./database_managment/repositories/session_repository.cpp
+        ./handlers/token_handler.cpp
 )
 
 target_link_directories(ZChatServer PRIVATE ${SODIUM_INCLUDE_DIRS})

@@ -2,6 +2,7 @@
 #include <string>
 #include <sqlite3.h>
 #include "data/account.h"
+#include "data/session.h"
 
 class Database
 {
@@ -18,15 +19,17 @@ public:
         sqlite3_stmt *get_account_from_email_stmt = nullptr;
         sqlite3_stmt *get_account_from_google_id_stmt = nullptr;
         sqlite3_stmt *check_google_id_exists_stmt = nullptr;
-        sqlite3_stmt *get_last_inserted_account_id_stmt = nullptr;
+        sqlite3_stmt *get_last_inserted_id_stmt = nullptr;
         // Session Repository
         sqlite3_stmt *insert_session_stmt = nullptr;
         sqlite3_stmt *check_session_exist_stmt = nullptr;
+        sqlite3_stmt *get_session_from_id_stmt = nullptr;
 
         Database();
         bool prepare(sqlite3_stmt *&stmt, const char *sql, const char *name);
         bool check(int rc, const char *context);
         void cleanup_stmt(sqlite3_stmt *stmt);
+        bool getLastInsertedId(int &id);
         ~Database();
 
         // Account Repository
@@ -39,10 +42,10 @@ public:
         bool getAccountFromGoogleId(const char *googleId, Account &accountOut, bool &isFound);
         bool getAccountFromUsername(const char *username, Account &accountOut, bool &isFound);
         bool getAccountFromId(int id, Account &accountOut, bool &isFound);
-        bool getLastInsertedAccountId(int &id);
 
         // Token Respository
         bool prepareSessionRepository();
         bool insertSession(int userId, std::string accessTokenHash, const char *refreshTokenHash);
         bool sessionExists(std::string accessTokenHash, const char *refreshTokenHash, bool &result);
+        bool getSessionFromId(int sessionId,Session& session,bool& isFound);
 };

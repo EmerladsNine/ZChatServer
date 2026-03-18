@@ -124,9 +124,10 @@ void NetworkingManager::sendSearchResponseCode(Client &client, SearchResponseCod
         secure_send(client, packet);
 }
 
-void NetworkingManager::sendNotAuthenticated(Client &client)
+void NetworkingManager::sendSessionStateResponseCode(Client &client, SessionStateResponseCode responseCode)
 {
         std::vector<char> packet;
-        packet.push_back(UnitType::notAuthenticated);
+        packet.push_back(UnitType::sessionStateResponseCode);
+        packet.push_back(responseCode);
         secure_send(client, packet);
 }

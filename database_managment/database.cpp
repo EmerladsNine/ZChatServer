@@ -14,6 +14,10 @@ Database::Database()
                 return;
         if (!prepareSessionRepository())
                 return;
+        if (!prepare(get_last_inserted_id_stmt,
+                     "SELECT last_insert_rowid();",
+                     "sql get lastInsertedId statement prepare error"))\
+                return;
         valid = true;
 }
 
@@ -52,4 +56,23 @@ Database::~Database()
         sqlite3_finalize(get_account_from_email_stmt);
         sqlite3_finalize(check_google_id_exists_stmt);
         sqlite3_close(db);
+}
+
+bool Database::getLastInsertedId(int &id)
+{
+        if (!valid)
+                return false;
+        int rc = sqlite3_step(get_last_inserted_id_stmt);
+        if (rc == SQLITE_ROW)
+        {
+                if (sqlite3_column_type(get_last_inserted_id_stmt, 0) != SQLITE_INTEGER)
+                        goto error;
+                id = sqlite3_column_int(get_last_inserted_id_stmt, 0);
+                cleanup_stmt(get_last_inserted_id_stmt);
+                return true;
+        }
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getLastInsertedId : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(get_last_inserted_id_stmt);
+        return false;
 }

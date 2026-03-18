@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "services.h"
-#include "session.h"
+#include "database_managment/data/session.h"
 
 class Client
 {
@@ -22,7 +22,7 @@ public:
                 return fd == other.fd;
         }
         void read(Services &services);
-        void authenticate(Services &services, uint32_t id, std::string &accessTokenHash);
+        void authenticate(Services &services, Session sessionToAdd);
         void disconnect(Services &services);
         Client();
         ~Client();
