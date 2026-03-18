@@ -27,17 +27,17 @@ int ArgonHash::Hash(const std::string &password, std::string &HashedPasswordOut)
         return 1;
 }
 
-int ArgonHash::verifyPassword(const char *password, size_t passwordLength, const char *hash, int *isEqual_OUT)
+int ArgonHash::verifyPassword(const char *password, size_t passwordLength, const char *hash, bool &isEqual_OUT)
 {
         if (!valid)
                 return 0;
         if (crypto_pwhash_str_verify(hash, password, passwordLength) != 0)
         {
-                *isEqual_OUT = 0;
+                isEqual_OUT = false;
         }
         else
         {
-                *isEqual_OUT = 1;
+                isEqual_OUT = true;
         }
         return 1;
 }

@@ -31,6 +31,14 @@ bool Database::prepareSessionRepository()
                      "SELECT * FROM sessions WHERE id = ?1 ;",
                      "sql get_session_access_token_statement prepare error"))
                 return false;
+        if (!prepare(update_session_stmt,
+                     "UPDATE sessions SET accessTokenHash = ?1,"
+                     "refreshTokenHash = ?2,"
+                     "accessExpires = strftime('%s', 'now', '+45 minutes'), "
+                     "refreshExpires = strftime('%s', 'now', '+60 days') "
+                     "WHERE id = ?3;",
+                     "sql update_session_statement prepare error"))
+                return false;
         return true;
 }
 
@@ -60,6 +68,32 @@ bool Database::insertSession(int userId, std::string accessTokenHash, const char
                 return fail(rc, 4);
 
         cleanup_stmt(insert_session_stmt);
+        return true;
+}
+
+bool Database::updateSession(int sessionId, std::string accessTokenHash, const char *refreshTokenHash)
+{
+        if (!valid)
+                return false;
+        auto fail = [&](int rc, int stepIndex)
+        {
+                std::cerr << "SQLite error (" << rc << ") on insertSession , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(update_session_stmt);
+                return false;
+        };
+        int rc = sqlite3_bind_blob(update_session_stmt, 1, accessTokenHash.data(), accessTokenHash.size(), SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                return fail(rc, 1);
+        rc = sqlite3_bind_text(update_session_stmt, 2, refreshTokenHash, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK)
+                return fail(rc, 2);
+        rc = sqlite3_bind_int(update_session_stmt, 3, sessionId);
+        if (rc != SQLITE_OK)
+                return fail(rc, 3);
+        rc = sqlite3_step(update_session_stmt);
+        if (rc != SQLITE_DONE)
+                return fail(rc, 4);
+        cleanup_stmt(update_session_stmt);
         return true;
 }
 
@@ -140,7 +174,7 @@ bool Database::getSessionFromId(int sessionId, Session &session, bool &isFound)
                 const unsigned char *refreshTokenHashText = sqlite3_column_text(get_session_from_id_stmt, 3);
                 if (!refreshTokenHashText)
                         goto error;
-                session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText),len);
+                session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText), len);
 
                 if (sqlite3_column_type(get_session_from_id_stmt, 4) != SQLITE_INTEGER)
                         goto type_error;

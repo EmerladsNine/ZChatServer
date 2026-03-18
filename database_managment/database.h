@@ -24,6 +24,7 @@ public:
         sqlite3_stmt *insert_session_stmt = nullptr;
         sqlite3_stmt *check_session_exist_stmt = nullptr;
         sqlite3_stmt *get_session_from_id_stmt = nullptr;
+        sqlite3_stmt *update_session_stmt = nullptr;
 
         Database();
         bool prepare(sqlite3_stmt *&stmt, const char *sql, const char *name);
@@ -46,6 +47,7 @@ public:
         // Token Respository
         bool prepareSessionRepository();
         bool insertSession(int userId, std::string accessTokenHash, const char *refreshTokenHash);
+        bool updateSession(int sessionId, std::string accessTokenHash, const char *refreshTokenHash);
         bool sessionExists(std::string accessTokenHash, const char *refreshTokenHash, bool &result);
-        bool getSessionFromId(int sessionId,Session& session,bool& isFound);
+        bool getSessionFromId(int sessionId, Session &session, bool &isFound);
 };

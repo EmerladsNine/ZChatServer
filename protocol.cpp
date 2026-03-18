@@ -91,6 +91,10 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         {
                 TokenHandler::useAccessToken(client, expectedSize, services);
         }
+        else if (head == UnitType::useRefreshToken)
+        {
+                TokenHandler::useRefreshToken(client, expectedSize, services);
+        }
 }
 
 void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services &services)

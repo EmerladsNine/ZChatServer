@@ -15,5 +15,6 @@ enum UnitType : uint8_t
         searchResponseCode = 10,
         normalMessageResponseCode = 11,
         sessionStateResponseCode = 12,
-        useAccessToken = 13
+        useAccessToken = 13,
+        useRefreshToken = 14
 };

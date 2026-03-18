@@ -33,8 +33,8 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
         if (!emailExists)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInEmailNotExistError);
 
-        int isEqual;
-        if (!services.hashManager.argonHash.verifyPassword(password.c_str(), password.length(), account.passHash.c_str(), &isEqual))
+        bool isEqual;
+        if (!services.hashManager.argonHash.verifyPassword(password.c_str(), password.length(), account.passHash.c_str(), isEqual))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!isEqual)
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInPasswordIncorrectError);
