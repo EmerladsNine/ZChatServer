@@ -45,7 +45,7 @@ void TokenHandler::useRefreshToken(Client &client, size_t expectedSize, Services
         uint32_t sessionId = bigEndianToInt<uint32_t>(client.buf, SESSION_ID_OFFSET);
         std::string refreshToken(client.buf.begin() + REFRESH_TOKEN_OFFSET, client.buf.begin() + REFRESH_TOKEN_OFFSET + REFRESH_TOKEN_SIZE);
         Session session;
-        if (!client.isAuthenticated)
+        if (!client.inSession || client.session.sessionId != sessionId)
         {
                 bool isFound;
                 if (!services.db.getSessionFromId(sessionId, session, isFound))
@@ -57,13 +57,13 @@ void TokenHandler::useRefreshToken(Client &client, size_t expectedSize, Services
         {
                 session = client.session;
         }
-        if (!session.isRefreshTokenActive(30))
-                return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::RefreshTokenExpired);
         bool isEqual;
         if (!services.hashManager.argonHash.verifyPassword(refreshToken.data(), refreshToken.size(), session.refreshTokenHash.data(), isEqual))
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::AuthenticationFailure);
         if (!isEqual)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::AuthenticationFailure);
+        if (!session.isRefreshTokenActive(30))
+                return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::RefreshTokenExpired);
         // Generate new session tokens
         std::vector<char> newAccessToken;
         std::vector<char> newRefreshToken;

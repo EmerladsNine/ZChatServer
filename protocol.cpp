@@ -46,6 +46,8 @@ bool Protocol::parseUnit(Client &client, Services &services)
 
 void Protocol::handleUnit(Client &client, size_t expectedSize, Services &services)
 {
+        if (client.inSession && !client.session.isAccessTokenActive(30))
+                client.isSessionValid = false;
         uint8_t head = static_cast<uint8_t>(client.buf[HEADER_OFFSET]);
         if (head == UnitType::ping)
         {
@@ -104,7 +106,7 @@ void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services
         const size_t RECEIVER_ID_SIZE = 4;
         const size_t MESSAGE_BODY_OFFSET = RECEIVER_ID_OFFSET + RECEIVER_ID_SIZE;
 
-        if (!client.isAuthenticated)
+        if (!client.inSession || !client.isSessionValid)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::NotAuthenticated);
         uint32_t receiverId = bigEndianToInt<std::uint32_t>(client.buf, RECEIVER_ID_OFFSET);
         std::cout << receiverId << std::endl;

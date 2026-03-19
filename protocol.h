@@ -8,10 +8,10 @@ const uint16_t HEAD_SIZE = 1;
 const size_t HEADER_OFFSET = EXPECTED_SIZE_BYTES;
 
 const size_t USERNAME_LENGTH_MAX = 20;
-const size_t PASSWORD_LENGTH_MAX = 254;
+const size_t PASSWORD_LENGTH_MAX = 128;
 const size_t EMAIL_LENGTH_MAX = 254;
 const size_t USERNAME_LENGTH_MIN = 1;
-const size_t PASSWORD_LENGTH_MIN = 8;
+const size_t PASSWORD_LENGTH_MIN = 12;
 const size_t EMAIL_LENGTH_MIN = 5;
 
 class Protocol

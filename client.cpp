@@ -36,23 +36,27 @@ void Client::read(Services &services)
 
 void Client::authenticate(Services &services, Session sessionToAdd)
 {
-        if (isAuthenticated)
+        if (inSession)
         {
-                std::cout << "LOG OUT : " << sessionToAdd.userid << std::endl;
-                services.networkingManager.onlineUsers.erase(sessionToAdd.userid);
-                isAuthenticated = false;
+                std::cout << "LOG OUT : " << session.userid << std::endl;
+                services.networkingManager.onlineUsers.erase(session.userid);
+                inSession = false;
+                isSessionValid = false;
         }
         services.networkingManager.onlineUsers[sessionToAdd.userid] = this;
-        isAuthenticated = true;
         session = sessionToAdd;
+        inSession = true;
+        if (session.isAccessTokenActive(30))
+                isSessionValid = true;
         std::cout << "Authenticated : " << sessionToAdd.userid << std::endl;
 }
 
 void Client::disconnect(Services &services)
 {
-        if (isAuthenticated)
+        if (inSession)
         {
                 services.networkingManager.onlineUsers.erase(session.userid);
-                isAuthenticated = false;
+                inSession = false;
+                isSessionValid = false;
         }
 }

@@ -14,7 +14,8 @@ public:
         bool isAlive = true;
         bool canRename;
         Session session;
-        bool isAuthenticated = false;
+        bool isSessionValid = false;
+        bool inSession = false;
         int fd;
         std::vector<char> buf;
         bool operator==(const Client &other) const

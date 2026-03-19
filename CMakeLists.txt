@@ -32,6 +32,7 @@ add_executable(ZChatServer
         ./database_managment/data/session.cpp
         ./database_managment/repositories/account_repository.cpp
         ./database_managment/repositories/session_repository.cpp
+        ./handlers/account_handler.cpp
         ./handlers/token_handler.cpp
 )
 
