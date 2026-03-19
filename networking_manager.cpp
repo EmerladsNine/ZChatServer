@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "unit_type.h"
 #include "services.h"
+#include "protocol.h"
 
 NetworkingManager::NetworkingManager() {}
 
@@ -33,7 +34,7 @@ void NetworkingManager::secure_send(Client &client, std::vector<char> &buffer)
 {
         // You encrypt first then get the size and insert it.
         size_t size = buffer.size();
-        std::vector<char> sizeBytes = intToBigEndian<std::uint16_t>(size);
+        std::vector<char> sizeBytes = intToBigEndian<expected_size>(size);
         buffer.insert(buffer.begin(), sizeBytes.begin(), sizeBytes.end());
         safe_send(client, buffer);
 }

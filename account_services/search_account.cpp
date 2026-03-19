@@ -6,7 +6,7 @@
 void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
-        const size_t USERNAME_OFFSET = 3;
+        const size_t USERNAME_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         size_t usernameLength = expectedSize - USERNAME_OFFSET;
 
         if (usernameLength < USERNAME_LENGTH_MIN || usernameLength > USERNAME_LENGTH_MAX)
@@ -39,7 +39,7 @@ void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Ser
 void AccountHandler::SearchWithId(Client &client, size_t expectedSize, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
-        const size_t ID_OFFSET = 3;
+        const size_t ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t ID_LENGTH = 4;
         if (expectedSize < ID_OFFSET + ID_LENGTH)
                 return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);

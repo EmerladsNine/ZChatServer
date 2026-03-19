@@ -21,7 +21,7 @@ bool getExpectedSize(Client &client, size_t &out)
         if (client.buf.size() < EXPECTED_SIZE_BYTES)
                 return false;
 
-        size_t size = bigEndianToInt<uint16_t>(client.buf, 0);
+        size_t size = bigEndianToInt<expected_size>(client.buf, 0);
         if (size == 0)
                 return false;
         out = size + EXPECTED_SIZE_BYTES;
@@ -52,10 +52,9 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         if (head == UnitType::ping)
         {
                 // Ping received
-                std::vector<char> size = intToBigEndian<std::uint16_t>(1);
-                std::vector<char> pongPacket(size.begin(), size.end());
+                std::vector<char> pongPacket;
                 pongPacket.push_back(1);
-                services.networkingManager.safe_send(client, pongPacket);
+                services.networkingManager.secure_send(client, pongPacket);
         }
         else if (head == UnitType::pong)
         {

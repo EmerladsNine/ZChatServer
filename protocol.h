@@ -2,7 +2,9 @@
 #include "client.h"
 #include <iostream>
 
-const uint16_t EXPECTED_SIZE_BYTES = 2;
+typedef uint32_t expected_size;
+
+const uint16_t EXPECTED_SIZE_BYTES = 4;
 const uint16_t HEAD_SIZE = 1;
 
 const size_t HEADER_OFFSET = EXPECTED_SIZE_BYTES;

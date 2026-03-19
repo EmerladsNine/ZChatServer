@@ -1,6 +1,7 @@
 #include "token_handler.h"
 #include "../utils.h"
 #include "../unit_type.h"
+#include "../protocol.h"
 
 TokenHandler::TokenHandler()
 {
@@ -12,7 +13,7 @@ TokenHandler::~TokenHandler()
 
 void TokenHandler::useAccessToken(Client &client, size_t expectedSize, Services &services)
 {
-        const size_t SESSION_ID_OFFSET = 3;
+        const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t SESSION_ID_SIZE = 4;
         const size_t ACCESS_TOKEN_OFFSET = SESSION_ID_OFFSET + SESSION_ID_SIZE;
         const size_t ACCESS_TOKEN_SIZE = 32;
@@ -36,7 +37,7 @@ void TokenHandler::useAccessToken(Client &client, size_t expectedSize, Services 
 
 void TokenHandler::useRefreshToken(Client &client, size_t expectedSize, Services &services)
 {
-        const size_t SESSION_ID_OFFSET = 3;
+        const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t SESSION_ID_SIZE = 4;
         const size_t REFRESH_TOKEN_OFFSET = SESSION_ID_OFFSET + SESSION_ID_SIZE;
         const size_t REFRESH_TOKEN_SIZE = 64;
