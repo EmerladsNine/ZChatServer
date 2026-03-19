@@ -3,7 +3,7 @@
 #include "../unit_type.h"
 #include "../utils.h"
 
-void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::SearchWithUsername(Client &client, expected_size expectedSize, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
         const size_t USERNAME_OFFSET = HEADER_OFFSET + HEAD_SIZE;
@@ -36,7 +36,7 @@ void AccountHandler::SearchWithUsername(Client &client, size_t expectedSize, Ser
         networkManager->secure_send(client, packet);
 }
 
-void AccountHandler::SearchWithId(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::SearchWithId(Client &client, expected_size expectedSize, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
         const size_t ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;

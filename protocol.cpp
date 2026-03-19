@@ -16,12 +16,12 @@ Protocol::~Protocol()
 {
 }
 
-bool getExpectedSize(Client &client, size_t &out)
+bool getExpectedSize(Client &client, expected_size &out)
 {
         if (client.buf.size() < EXPECTED_SIZE_BYTES)
                 return false;
 
-        size_t size = bigEndianToInt<expected_size>(client.buf, 0);
+        expected_size size = bigEndianToInt<expected_size>(client.buf, 0);
         if (size == 0)
                 return false;
         out = size + EXPECTED_SIZE_BYTES;
@@ -30,7 +30,7 @@ bool getExpectedSize(Client &client, size_t &out)
 
 bool Protocol::parseUnit(Client &client, Services &services)
 {
-        size_t expectedSize;
+        expected_size expectedSize;
         if (!getExpectedSize(client, expectedSize))
                 return false;
         if (client.buf.size() < expectedSize)
@@ -44,7 +44,7 @@ bool Protocol::parseUnit(Client &client, Services &services)
         return true;
 }
 
-void Protocol::handleUnit(Client &client, size_t expectedSize, Services &services)
+void Protocol::handleUnit(Client &client, expected_size expectedSize, Services &services)
 {
         if (client.inSession && !client.session.isAccessTokenActive(30))
                 client.isSessionValid = false;
@@ -98,7 +98,7 @@ void Protocol::handleUnit(Client &client, size_t expectedSize, Services &service
         }
 }
 
-void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services &services)
+void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, Services &services)
 {
 
         const size_t RECEIVER_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;

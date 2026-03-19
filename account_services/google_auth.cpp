@@ -47,7 +47,7 @@ bool verifyGoogleToken(std::string &token, Client &client, std::string &googleId
         return true;
 }
 
-void AccountHandler::GoogleSignIn(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::GoogleSignIn(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t GOOGLE_TOKEN_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         NetworkingManager *networkManager = &services.networkingManager;
@@ -103,7 +103,7 @@ void AccountHandler::GoogleSignIn(Client &client, size_t expectedSize, Services 
         networkManager->secure_send(client, packet);
 }
 
-void AccountHandler::GoogleSignUp(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
         const size_t USERNAME_LENGTH_SIZE = 1;

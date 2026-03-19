@@ -11,7 +11,7 @@ TokenHandler::~TokenHandler()
 {
 }
 
-void TokenHandler::useAccessToken(Client &client, size_t expectedSize, Services &services)
+void TokenHandler::useAccessToken(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t SESSION_ID_SIZE = 4;
@@ -35,7 +35,7 @@ void TokenHandler::useAccessToken(Client &client, size_t expectedSize, Services 
         return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::SessionAuthenticationSuccess);
 }
 
-void TokenHandler::useRefreshToken(Client &client, size_t expectedSize, Services &services)
+void TokenHandler::useRefreshToken(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t SESSION_ID_SIZE = 4;

@@ -3,7 +3,7 @@
 #include "../unit_type.h"
 #include "../utils.h"
 
-void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::EmailSignIn(Client &client, expected_size expectedSize, Services &services)
 {
         const uint16_t EMAIN_LENGTH_SIZE = 1;
         const size_t EMAIL_LENGTH_OFFSET = HEADER_OFFSET + HEAD_SIZE;
@@ -77,7 +77,7 @@ void AccountHandler::EmailSignIn(Client &client, size_t expectedSize, Services &
         networkManager->secure_send(client, packet);
 }
 
-void AccountHandler::EmailSignUp(Client &client, size_t expectedSize, Services &services)
+void AccountHandler::EmailSignUp(Client &client, expected_size expectedSize, Services &services)
 {
         const uint16_t EMAIN_LENGTH_SIZE = 1;
         const uint16_t PASSWORD_LENGTH_SIZE = 1;
