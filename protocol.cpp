@@ -109,7 +109,8 @@ void Protocol::handleNormalMessage(Client &client, size_t expectedSize, Services
         if (!client.inSession || !client.isSessionValid)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::NotAuthenticated);
         uint32_t receiverId = bigEndianToInt<std::uint32_t>(client.buf, RECEIVER_ID_OFFSET);
-        std::cout << receiverId << std::endl;
+        if (client.session.userid == receiverId)
+                return;
         std::vector<char> messageBody(client.buf.begin() + MESSAGE_BODY_OFFSET, client.buf.begin() + expectedSize);
         std::vector<char> senderId = intToBigEndian<std::uint32_t>(client.session.userid);
         std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
