@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 Client::Client()
-{
+{ 
 }
 
 Client::~Client()
@@ -55,8 +55,8 @@ void Client::disconnect(Services &services)
 {
         if (inSession)
         {
-                services.networkingManager.onlineUsers.erase(session.userid);
                 inSession = false;
                 isSessionValid = false;
+                services.networkingManager.onlineUsers.erase(session.userid);
         }
 }
