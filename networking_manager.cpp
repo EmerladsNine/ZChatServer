@@ -77,8 +77,9 @@ void NetworkingManager::waitForReadableSockets()
 
         // get max fd
         int max_fd = server_fd;
-        for (Client &client : clientsConnected)
+        for (auto clientHandle : clientsConnected)
         {
+                Client &client = clientsConnected.get(clientHandle);
                 FD_SET(client.fd, &readfds);
                 max_fd = std::max(max_fd, client.fd);
         }
@@ -104,7 +105,8 @@ void NetworkingManager::acceptPendingClients()
                         std::cout << "New Client Connected : " << client_fd << std::endl;
                         Client client;
                         client.fd = client_fd;
-                        clientsConnected.push_back(client);
+                        auto handle = clientsConnected.insert(client);
+                        clientsConnected.get(handle).handle = handle;
                 }
         }
 }

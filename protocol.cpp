@@ -130,7 +130,7 @@ void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, S
         if (it != services.networkingManager.onlineUsers.end())
         {
                 std::cout << "Sending" << std::endl;
-                Client *receiverClient = it->second;
-                services.networkingManager.secure_send(*receiverClient, packet);
+                Client &receiverClient = services.networkingManager.clientsConnected.get(it->second);
+                services.networkingManager.secure_send(receiverClient, packet);
         }
 }

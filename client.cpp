@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 Client::Client()
-{ 
+{
 }
 
 Client::~Client()
@@ -43,7 +43,7 @@ void Client::authenticate(Services &services, Session sessionToAdd)
                 inSession = false;
                 isSessionValid = false;
         }
-        services.networkingManager.onlineUsers[sessionToAdd.userid] = this;
+        services.networkingManager.onlineUsers[sessionToAdd.userid] = handle;
         session = sessionToAdd;
         inSession = true;
         if (session.isAccessTokenActive(30))

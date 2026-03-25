@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include "services.h"
 #include "database_managment/data/session.h"
+#include "utils/free_list.h"
 
 class Client
 {
@@ -17,6 +18,7 @@ public:
         bool isSessionValid = false;
         bool inSession = false;
         int fd;
+        FreeList<Client>::Handle handle;
         std::vector<char> buf;
         bool operator==(const Client &other) const
         {

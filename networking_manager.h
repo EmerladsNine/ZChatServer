@@ -9,6 +9,7 @@
 #include "response_codes/search_response_code.h"
 #include "response_codes/session_state_response_code.h"
 #include <unordered_map>
+#include "utils/free_list.h"
 
 class Client;
 class Services;
@@ -30,7 +31,7 @@ public:
         void sendAuthResponseCode(Client &client, AuthResponseCode responseCode);
         void sendSessionStateResponseCode(Client &client, SessionStateResponseCode responseCode);
         void sendSearchResponseCode(Client &client, SearchResponseCode responseCode);
-        std::vector<Client> clientsConnected;
-        std::unordered_map<int, Client *> onlineUsers;
+        FreeList<Client> clientsConnected;
+        std::unordered_map<int, FreeList<Client>::Handle> onlineUsers;
         ~NetworkingManager();
 };
