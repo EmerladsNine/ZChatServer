@@ -1,7 +1,7 @@
 #include "../handlers/account_handler.h"
 #include "../protocol.h"
 #include "../unit_type.h"
-#include "../utils.h"
+#include "../utils/endian_codec.h"
 
 void AccountHandler::EmailSignIn(Client &client, expected_size expectedSize, Services &services)
 {
@@ -50,7 +50,7 @@ void AccountHandler::EmailSignIn(Client &client, expected_size expectedSize, Ser
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
         if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
 
@@ -137,7 +137,7 @@ void AccountHandler::EmailSignUp(Client &client, expected_size expectedSize, Ser
         // Create Email Account.
         if (!services.db.insertEmailAccount(username.c_str(), email.c_str(), hashedPassword.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
-        int id;
+        userIdType id;
         if (!services.db.getLastInsertedId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
 
@@ -150,7 +150,7 @@ void AccountHandler::EmailSignUp(Client &client, expected_size expectedSize, Ser
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailAccountCreationFailureError);
         Session session;

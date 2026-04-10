@@ -39,10 +39,14 @@ bool Database::prepareSessionRepository()
                      "WHERE id = ?3;",
                      "sql update_session_statement prepare error"))
                 return false;
+        if (!prepare(get_sessions_from_user_id_stmt,
+                     "SELECT * FROM sessions WHERE userId = ?1;",
+                     "sql get_sessions_from_user_id_stmt prepare error"))
+                return false;
         return true;
 }
 
-bool Database::insertSession(int userId, std::string accessTokenHash, const char *refreshTokenHash)
+bool Database::insertSession(userIdType userId, std::string accessTokenHash, const char *refreshTokenHash)
 {
         if (!valid)
                 return false;
@@ -53,7 +57,7 @@ bool Database::insertSession(int userId, std::string accessTokenHash, const char
                 return false;
         };
 
-        int rc = sqlite3_bind_int(insert_session_stmt, 1, userId);
+        int rc = sqlite3_bind_int64(insert_session_stmt, 1, userId);
         if (rc != SQLITE_OK)
                 return fail(rc, 1);
         rc = sqlite3_bind_blob(insert_session_stmt, 2, accessTokenHash.data(), accessTokenHash.size(), SQLITE_TRANSIENT);
@@ -71,7 +75,7 @@ bool Database::insertSession(int userId, std::string accessTokenHash, const char
         return true;
 }
 
-bool Database::updateSession(int sessionId, std::string accessTokenHash, const char *refreshTokenHash)
+bool Database::updateSession(sessionIdType sessionId, std::string accessTokenHash, const char *refreshTokenHash)
 {
         if (!valid)
                 return false;
@@ -87,7 +91,7 @@ bool Database::updateSession(int sessionId, std::string accessTokenHash, const c
         rc = sqlite3_bind_text(update_session_stmt, 2, refreshTokenHash, -1, SQLITE_TRANSIENT);
         if (rc != SQLITE_OK)
                 return fail(rc, 2);
-        rc = sqlite3_bind_int(update_session_stmt, 3, sessionId);
+        rc = sqlite3_bind_int64(update_session_stmt, 3, sessionId);
         if (rc != SQLITE_OK)
                 return fail(rc, 3);
         rc = sqlite3_step(update_session_stmt);
@@ -134,12 +138,12 @@ bool Database::sessionExists(std::string accessTokenHash, const char *refreshTok
         return true;
 }
 
-bool Database::getSessionFromId(int sessionId, Session &session, bool &isFound)
+bool Database::getSessionFromId(sessionIdType sessionId, Session &session, bool &isFound)
 {
         isFound = false;
         if (!valid)
                 return false;
-        int rc = sqlite3_bind_int(get_session_from_id_stmt, 1, sessionId);
+        int rc = sqlite3_bind_int64(get_session_from_id_stmt, 1, sessionId);
         if (rc != SQLITE_OK)
                 goto error;
         rc = sqlite3_step(get_session_from_id_stmt);
@@ -153,11 +157,11 @@ bool Database::getSessionFromId(int sessionId, Session &session, bool &isFound)
         {
                 if (sqlite3_column_type(get_session_from_id_stmt, 0) != SQLITE_INTEGER)
                         goto type_error;
-                session.sessionId = sqlite3_column_int(get_session_from_id_stmt, 0);
+                session.sessionId = sqlite3_column_int64(get_session_from_id_stmt, 0);
 
                 if (sqlite3_column_type(get_session_from_id_stmt, 1) != SQLITE_INTEGER)
                         goto type_error;
-                session.userid = sqlite3_column_int(get_session_from_id_stmt, 1);
+                session.userid = sqlite3_column_int64(get_session_from_id_stmt, 1);
 
                 if (sqlite3_column_type(get_session_from_id_stmt, 2) != SQLITE_BLOB)
                         goto type_error;
@@ -195,5 +199,80 @@ error:
 type_error:
         std::cerr << "SQLite error on Database::getSessionFromId : incorrect type" << std::endl;
         cleanup_stmt(get_session_from_id_stmt);
+        return false;
+}
+
+bool Database::getSessionsFromUserId(userIdType userId, std::vector<Session> &sessions)
+{
+        if (!valid)
+                return false;
+        auto fail = [&](int rc, int stepIndex)
+        {
+                std::cerr << "SQLite error (" << rc << ") on getSessionsFromUserId , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(get_sessions_from_user_id_stmt);
+                return false;
+        };
+
+        int rc = sqlite3_bind_int64(get_sessions_from_user_id_stmt, 1, userId);
+        if (rc != SQLITE_OK)
+                return fail(rc, 1);
+        while (true)
+        {
+                rc = sqlite3_step(get_sessions_from_user_id_stmt);
+                if (rc == SQLITE_DONE)
+                {
+                        cleanup_stmt(get_sessions_from_user_id_stmt);
+                        return true;
+                }
+                else if (rc == SQLITE_ROW)
+                {
+                        Session session;
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 0) != SQLITE_INTEGER)
+                                goto type_error;
+                        session.sessionId = sqlite3_column_int64(get_sessions_from_user_id_stmt, 0);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 1) != SQLITE_INTEGER)
+                                goto type_error;
+                        session.userid = sqlite3_column_int64(get_sessions_from_user_id_stmt, 1);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 2) != SQLITE_BLOB)
+                                goto type_error;
+                        int blobSize = sqlite3_column_bytes(get_sessions_from_user_id_stmt, 2);
+                        sqlite3_column_blob(get_sessions_from_user_id_stmt, 2);
+                        const char *blobPtr = reinterpret_cast<const char *>(sqlite3_column_blob(get_sessions_from_user_id_stmt, 2));
+                        if (!blobPtr)
+                                goto error;
+                        session.accessTokenHash.assign(blobPtr, blobSize);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 3) != SQLITE_TEXT)
+                                goto type_error;
+                        int len = sqlite3_column_bytes(get_sessions_from_user_id_stmt, 3);
+                        const unsigned char *refreshTokenHashText = sqlite3_column_text(get_sessions_from_user_id_stmt, 3);
+                        if (!refreshTokenHashText)
+                                goto error;
+                        session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText), len);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 4) != SQLITE_INTEGER)
+                                goto type_error;
+                        session.accessExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 4);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 5) != SQLITE_INTEGER)
+                                goto type_error;
+                        session.refreshExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 5);
+                        sessions.push_back(session);
+                }
+                else
+                {
+                        cleanup_stmt(get_sessions_from_user_id_stmt);
+                        return false;
+                }
+        }
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::getSessionsFromUserId : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(get_sessions_from_user_id_stmt);
+        return false;
+type_error:
+        std::cerr << "SQLite error on Database::getSessionsFromUserId : incorrect type" << std::endl;
+        cleanup_stmt(get_sessions_from_user_id_stmt);
         return false;
 }

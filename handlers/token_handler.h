@@ -5,8 +5,6 @@ class TokenHandler
 {
 private:
 public:
-        TokenHandler();
         static void useAccessToken(Client &client, expected_size expectedSize, Services &services);
         static void useRefreshToken(Client &client, expected_size expectedSize, Services &services);
-        ~TokenHandler();
 };

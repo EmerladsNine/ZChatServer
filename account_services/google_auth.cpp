@@ -2,7 +2,7 @@
 #include "../protocol.h"
 #include "curl/curl.h"
 #include "../unit_type.h"
-#include "../utils.h"
+#include "../utils/endian_codec.h"
 
 bool verifyGoogleToken(std::string &token, Client &client, std::string &googleIdOut, Services &services)
 {
@@ -77,7 +77,7 @@ void AccountHandler::GoogleSignIn(Client &client, expected_size expectedSize, Se
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         Session session;
@@ -147,7 +147,7 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
         // Create.
         if (!services.db.insertGoogleAccount(username.c_str(), googleId.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int id;
+        userIdType id;
         if (!services.db.getLastInsertedId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
@@ -160,7 +160,7 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 

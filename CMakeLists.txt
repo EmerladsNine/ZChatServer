@@ -32,8 +32,10 @@ add_executable(ZChatServer
         ./database_managment/data/session.cpp
         ./database_managment/repositories/account_repository.cpp
         ./database_managment/repositories/session_repository.cpp
+        ./database_managment/repositories/messages_repository.cpp
         ./handlers/account_handler.cpp
         ./handlers/token_handler.cpp
+        ./handlers/session_list_handler.cpp
 )
 
 target_link_directories(ZChatServer PRIVATE ${SODIUM_INCLUDE_DIRS})

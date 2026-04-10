@@ -9,14 +9,15 @@ bool Database::prepareAccountRepository()
             "username TEXT,"
             "email TEXT,"
             "passwordHash TEXT,"
-            "googleId TEXT"
+            "googleId TEXT,"
+            "sessionListVersion INTEGER DEFAULT 0"
             ");";
         int rc = sqlite3_exec(db, createAccountTableSQL, nullptr, nullptr, nullptr);
         if (!check(rc, "sql create account table error"))
                 return false;
 
         if (!prepare(insert_account_stmt,
-                     "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4 );",
+                     "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4);",
                      "sql insert account statement prepare error"))
                 return false;
         if (!prepare(check_email_exists_stmt,
@@ -172,7 +173,7 @@ bool Database::getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, boo
         {
                 if (sqlite3_column_type(readyToRunStmt, 0) != SQLITE_INTEGER)
                         goto type_error;
-                int id = sqlite3_column_int(readyToRunStmt, 0);
+                userIdType id = sqlite3_column_int64(readyToRunStmt, 0);
 
                 if (sqlite3_column_type(readyToRunStmt, 1) != SQLITE_TEXT)
                         goto type_error;
@@ -237,11 +238,16 @@ bool Database::getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, boo
                         goto type_error;
                 }
 
+                if (sqlite3_column_type(readyToRunStmt, 5) != SQLITE_INTEGER)
+                        goto type_error;
+                sessionListVersionType sessionListVersion = sqlite3_column_int64(readyToRunStmt, 5);
+
                 accountOut.id = id;
                 accountOut.username = username;
                 accountOut.email = email;
                 accountOut.passHash = passHash;
                 accountOut.googleId = googleId;
+                accountOut.sessionListVersion = sessionListVersion;
                 isFound = true;
                 cleanup_stmt(readyToRunStmt);
                 return true;
@@ -272,13 +278,13 @@ error:
         return false;
 }
 
-bool Database::getAccountFromId(int id, Account &accountOut, bool &isFound)
+bool Database::getAccountFromId(userIdType id, Account &accountOut, bool &isFound)
 {
         isFound = false;
         if (!valid)
                 return false;
 
-        int rc = sqlite3_bind_int(get_account_from_id_stmt, 1, id);
+        int rc = sqlite3_bind_int64(get_account_from_id_stmt, 1, id);
         if (rc != SQLITE_OK)
                 goto error;
         return getAccount(get_account_from_id_stmt, accountOut, isFound);

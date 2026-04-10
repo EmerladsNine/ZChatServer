@@ -1,10 +1,11 @@
 #include "protocol.h"
-#include "utils.h"
+#include "utils/endian_codec.h"
 #include "unit_type.h"
 #include <chrono>
 #include "database_managment/database.h"
 #include "handlers/account_handler.h"
 #include "handlers/token_handler.h"
+#include "handlers/session_list_handler.h"
 
 using namespace std::chrono;
 
@@ -96,22 +97,26 @@ void Protocol::handleUnit(Client &client, expected_size expectedSize, Services &
         {
                 TokenHandler::useRefreshToken(client, expectedSize, services);
         }
+        else if (head == UnitType::requestSessionsList)
+        {
+                SessionListHandler::handleSessionListRequest(client, expectedSize, services);
+        }
 }
 
 void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, Services &services)
 {
 
         const size_t RECEIVER_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
-        const size_t RECEIVER_ID_SIZE = 4;
+        const size_t RECEIVER_ID_SIZE = sizeof(userIdType);
         const size_t MESSAGE_BODY_OFFSET = RECEIVER_ID_OFFSET + RECEIVER_ID_SIZE;
 
         if (!client.inSession || !client.isSessionValid)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::NotAuthenticated);
-        uint32_t receiverId = bigEndianToInt<std::uint32_t>(client.buf, RECEIVER_ID_OFFSET);
+        userIdType receiverId = bigEndianToInt<userIdType>(client.buf, RECEIVER_ID_OFFSET);
         if (client.session.userid == receiverId)
                 return;
         std::vector<char> messageBody(client.buf.begin() + MESSAGE_BODY_OFFSET, client.buf.begin() + expectedSize);
-        std::vector<char> senderId = intToBigEndian<std::uint32_t>(client.session.userid);
+        std::vector<char> senderId = intToBigEndian<userIdType>(client.session.userid);
         std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
         std::vector<char> packet;
         packet.reserve(HEAD_SIZE + timeStamp.size() + messageBody.size());

@@ -1,5 +1,5 @@
 #include "token_handler.h"
-#include "../utils.h"
+#include "../utils/endian_codec.h"
 #include "../unit_type.h"
 #include "../protocol.h"
 
@@ -14,12 +14,12 @@ TokenHandler::~TokenHandler()
 void TokenHandler::useAccessToken(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
-        const size_t SESSION_ID_SIZE = 4;
+        const size_t SESSION_ID_SIZE = sizeof(sessionIdType);
         const size_t ACCESS_TOKEN_OFFSET = SESSION_ID_OFFSET + SESSION_ID_SIZE;
         const size_t ACCESS_TOKEN_SIZE = 32;
         if (expectedSize < ACCESS_TOKEN_OFFSET + ACCESS_TOKEN_SIZE)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::AuthenticationFailure);
-        uint32_t sessionId = bigEndianToInt<uint32_t>(client.buf, SESSION_ID_OFFSET);
+        sessionIdType sessionId = bigEndianToInt<sessionIdType>(client.buf, SESSION_ID_OFFSET);
         std::string accessToken(client.buf.begin() + ACCESS_TOKEN_OFFSET, client.buf.begin() + ACCESS_TOKEN_OFFSET + ACCESS_TOKEN_SIZE);
         Session session;
         bool isFound;
@@ -38,12 +38,12 @@ void TokenHandler::useAccessToken(Client &client, expected_size expectedSize, Se
 void TokenHandler::useRefreshToken(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
-        const size_t SESSION_ID_SIZE = 4;
+        const size_t SESSION_ID_SIZE = sizeof(sessionIdType);
         const size_t REFRESH_TOKEN_OFFSET = SESSION_ID_OFFSET + SESSION_ID_SIZE;
         const size_t REFRESH_TOKEN_SIZE = 64;
         if (expectedSize < REFRESH_TOKEN_OFFSET + REFRESH_TOKEN_SIZE)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::AuthenticationFailure);
-        uint32_t sessionId = bigEndianToInt<uint32_t>(client.buf, SESSION_ID_OFFSET);
+        sessionIdType sessionId = bigEndianToInt<sessionIdType>(client.buf, SESSION_ID_OFFSET);
         std::string refreshToken(client.buf.begin() + REFRESH_TOKEN_OFFSET, client.buf.begin() + REFRESH_TOKEN_OFFSET + REFRESH_TOKEN_SIZE);
         Session session;
         if (!client.inSession || client.session.sessionId != sessionId)
