@@ -54,6 +54,16 @@ void AccountHandler::EmailSignIn(Client &client, expected_size expectedSize, Ser
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
 
+        if (!services.db.incrementAccountSessionListVersion(account.id))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::emailSignInFailureError);
+
+        if (services.networkingManager.sessionsListCache.contains(account.id))
+        {
+                SessionList &list = services.networkingManager.sessionsListCache[account.id];
+                list.version += 1;
+                list.sessions.push_back(sessionId);
+        }
+
         Session session;
         bool isFound;
         if (!services.db.getSessionFromId(sessionId, session, isFound))

@@ -11,6 +11,7 @@ private:
 public:
         sqlite3 *db = nullptr;
         bool valid = false;
+        sqlite3_stmt *get_last_inserted_id_stmt = nullptr;
 
         // Account Repository
         sqlite3_stmt *insert_account_stmt = nullptr;
@@ -20,7 +21,7 @@ public:
         sqlite3_stmt *get_account_from_email_stmt = nullptr;
         sqlite3_stmt *get_account_from_google_id_stmt = nullptr;
         sqlite3_stmt *check_google_id_exists_stmt = nullptr;
-        sqlite3_stmt *get_last_inserted_id_stmt = nullptr;
+        sqlite3_stmt *increment_session_list_version_stmt = nullptr;
         // Session Repository
         sqlite3_stmt *insert_session_stmt = nullptr;
         sqlite3_stmt *check_session_exist_stmt = nullptr;
@@ -45,6 +46,7 @@ public:
         bool getAccountFromGoogleId(const char *googleId, Account &accountOut, bool &isFound);
         bool getAccountFromUsername(const char *username, Account &accountOut, bool &isFound);
         bool getAccountFromId(userIdType id, Account &accountOut, bool &isFound);
+        bool incrementAccountSessionListVersion(userIdType id);
 
         // Token Respository
         bool prepareSessionRepository();
@@ -52,9 +54,8 @@ public:
         bool updateSession(sessionIdType sessionId, std::string accessTokenHash, const char *refreshTokenHash);
         bool sessionExists(std::string accessTokenHash, const char *refreshTokenHash, bool &result);
         bool getSessionFromId(sessionIdType sessionId, Session &session, bool &isFound);
-        bool getSessionsFromUserId(userIdType userId,std::vector<Session>& sessions);
+        bool getSessionsFromUserId(userIdType userId, std::vector<Session> &sessions);
 
-        //Messages Repository
+        // Messages Repository
         bool prepareMessagesRepository();
-        
 };
