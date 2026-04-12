@@ -9,15 +9,15 @@ void SessionListHandler::handleSessionListRequest(Client &client, expected_size 
         const size_t USER_IDS_COUNT_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t USER_IDS_COUNT_LENGTH = 1;
         if (expectedSize < USER_IDS_COUNT_OFFSET + USER_IDS_COUNT_LENGTH)
-                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::Error);
+                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::SessionListError);
         size_t UserIdsCount = client.buf[USER_IDS_COUNT_OFFSET];
         const size_t USER_ID_LENGTH = sizeof(userIdType);
         if (expectedSize < USER_IDS_COUNT_OFFSET + USER_IDS_COUNT_LENGTH + UserIdsCount * USER_ID_LENGTH)
-                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::Error);
+                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::SessionListError);
 
         std::vector<char> packet;
         packet.push_back(UnitType::requestSessionListResponseCode);
-        packet.push_back(SessionListResponseCode::Success);
+        packet.push_back(SessionListResponseCode::SessionListSuccess);
         for (int i = 0; i < UserIdsCount; i++)
         {
                 userIdType userId = bigEndianToInt<userIdType>(client.buf, USER_IDS_COUNT_OFFSET + USER_IDS_COUNT_LENGTH + i * USER_ID_LENGTH);
@@ -29,7 +29,7 @@ void SessionListHandler::handleSessionListRequest(Client &client, expected_size 
                         Account account;
                         bool isFound;
                         if (!services.db.getAccountFromId(userId, account, isFound) || !isFound)
-                                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::Error);
+                                return services.networkingManager.sendSessionListResponseCode(client, SessionListResponseCode::SessionListError);
                         sessionList.version = account.sessionListVersion;
                         std::vector<Session> sessions;
                         services.db.getSessionsFromUserId(userId, sessions);
@@ -47,8 +47,8 @@ void SessionListHandler::handleSessionListRequest(Client &client, expected_size 
                 }
                 std::vector<char> versionVec = intToBigEndian<sessionListVersionType>(sessionList.version);
                 packet.insert(packet.end(), versionVec.begin(), versionVec.end());
-                size_t sessionsSize = sessionList.sessions.size();
-                std::vector<char> sessionsSizeVec = intToBigEndian<size_t>(sessionsSize);
+                char sessionsSize = sessionList.sessions.size();
+                std::vector<char> sessionsSizeVec = intToBigEndian<char>(sessionsSize);
                 packet.insert(packet.end(), sessionsSizeVec.begin(), sessionsSizeVec.end());
                 for (size_t i = 0; i < sessionsSize; i++)
                 {

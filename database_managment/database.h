@@ -22,12 +22,16 @@ public:
         sqlite3_stmt *get_account_from_google_id_stmt = nullptr;
         sqlite3_stmt *check_google_id_exists_stmt = nullptr;
         sqlite3_stmt *increment_session_list_version_stmt = nullptr;
+
         // Session Repository
         sqlite3_stmt *insert_session_stmt = nullptr;
         sqlite3_stmt *check_session_exist_stmt = nullptr;
         sqlite3_stmt *get_session_from_id_stmt = nullptr;
         sqlite3_stmt *get_sessions_from_user_id_stmt = nullptr;
         sqlite3_stmt *update_session_stmt = nullptr;
+
+        // Messages Repository
+        sqlite3_stmt *insert_message_stmt = nullptr;
 
         Database();
         bool prepare(sqlite3_stmt *&stmt, const char *sql, const char *name);
@@ -58,4 +62,5 @@ public:
 
         // Messages Repository
         bool prepareMessagesRepository();
+        bool insertMessage(userIdType senderUserId, sessionIdType receiverSessionId, std::string &message, int64_t timestamp);
 };

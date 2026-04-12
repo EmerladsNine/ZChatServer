@@ -105,8 +105,8 @@ void AccountHandler::GoogleSignIn(Client &client, expected_size expectedSize, Se
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
-        std::vector<char> idVec = intToBigEndian<int>(account.id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(account.id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
@@ -189,8 +189,8 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
-        std::vector<char> idVec = intToBigEndian<int>(id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());

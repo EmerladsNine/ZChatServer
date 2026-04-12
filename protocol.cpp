@@ -6,6 +6,7 @@
 #include "handlers/account_handler.h"
 #include "handlers/token_handler.h"
 #include "handlers/session_list_handler.h"
+#include "response_codes/normal_message_response_code.h"
 
 using namespace std::chrono;
 
@@ -105,37 +106,104 @@ void Protocol::handleUnit(Client &client, expected_size expectedSize, Services &
 
 void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, Services &services)
 {
-
-        const size_t RECEIVER_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
-        const size_t RECEIVER_ID_SIZE = sizeof(userIdType);
-        const size_t MESSAGE_BODY_OFFSET = RECEIVER_ID_OFFSET + RECEIVER_ID_SIZE;
-
         if (!client.inSession || !client.isSessionValid)
                 return services.networkingManager.sendSessionStateResponseCode(client, SessionStateResponseCode::NotAuthenticated);
-        userIdType receiverId = bigEndianToInt<userIdType>(client.buf, RECEIVER_ID_OFFSET);
-        if (client.session.userid == receiverId)
-                return;
-        std::vector<char> messageBody(client.buf.begin() + MESSAGE_BODY_OFFSET, client.buf.begin() + expectedSize);
-        std::vector<char> senderId = intToBigEndian<userIdType>(client.session.userid);
-        std::vector<char> timeStamp = intToBigEndian<std::int64_t>(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
-        std::vector<char> packet;
-        packet.reserve(HEAD_SIZE + timeStamp.size() + messageBody.size());
-        packet.push_back(UnitType::normalMessage);
-        packet.insert(packet.end(), senderId.begin(), senderId.end());
-        packet.insert(packet.end(), timeStamp.begin(), timeStamp.end());
-        packet.insert(packet.end(), messageBody.begin(), messageBody.end());
 
-        // send ok to the sender client.
-        std::vector<char> okPacket;
-        okPacket.push_back(UnitType::normalMessageResponseCode);
-        services.networkingManager.secure_send(client, okPacket);
-
-        // Find receiver and send
-        auto it = services.networkingManager.onlineUsers.find(receiverId);
-        if (it != services.networkingManager.onlineUsers.end())
+        std::vector<char> senderPacket;
+        senderPacket.push_back(UnitType::normalMessageResponseCode);
+        size_t currentOffset = HEADER_OFFSET + HEAD_SIZE;
+        while (currentOffset < expectedSize)
         {
-                std::cout << "Sending" << std::endl;
-                Client &receiverClient = services.networkingManager.clientsConnected.get(it->second);
-                services.networkingManager.secure_send(receiverClient, packet);
+                userIdType receiverId = bigEndianToInt<userIdType>(client.buf, currentOffset);
+                currentOffset += sizeof(userIdType);
+                std::vector<char> receiverIdVec = intToBigEndian<userIdType>(receiverId);
+                senderPacket.insert(senderPacket.end(), receiverIdVec.begin(), receiverIdVec.end());
+                sessionListVersionType version = bigEndianToInt<sessionListVersionType>(client.buf, currentOffset);
+                currentOffset += sizeof(sessionListVersionType);
+                SessionList sessionList(0);
+                auto it = services.networkingManager.sessionsListCache.find(receiverId);
+                if (it != services.networkingManager.sessionsListCache.end())
+                {
+                        sessionList = it->second;
+                }
+                else
+                {
+
+                        Account account;
+                        bool isFound;
+                        if (!services.db.getAccountFromId(receiverId, account, isFound))
+                        {
+                                senderPacket.push_back(NormalMessageResponseCode::NormalMessageResponseFailure);
+                                continue;
+                        }
+                        if (!isFound)
+                        {
+                                senderPacket.push_back(NormalMessageResponseCode::UserNotFound);
+                                continue;
+                        }
+                        sessionList.version = account.sessionListVersion;
+                        std::vector<Session> sessions;
+                        services.db.getSessionsFromUserId(receiverId, sessions);
+                        for (Session &session : sessions)
+                        {
+                                if (!session.isRefreshTokenActive())
+                                        continue;
+                                sessionList.sessions.push_back(session.sessionId);
+                        }
+                        services.networkingManager.sessionsListCache[receiverId] = sessionList;
+                }
+
+                if (sessionList.version != version)
+                {
+                        senderPacket.push_back(NormalMessageResponseCode::OutdatedSessionListVersion);
+                        std::vector<char> sessionListVersionVec = intToBigEndian<sessionListVersionType>(sessionList.version);
+                        senderPacket.insert(senderPacket.end(), sessionListVersionVec.begin(), sessionListVersionVec.end());
+                        senderPacket.push_back(sessionList.sessions.size());
+                        for (sessionIdType sessionId : sessionList.sessions)
+                        {
+                                std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
+                                senderPacket.insert(senderPacket.end(), sessionIdVec.begin(), sessionIdVec.end());
+                        }
+                        continue;
+                }
+
+                size_t sessionsCount = bigEndianToInt<char>(client.buf, currentOffset);
+                currentOffset += sizeof(char);
+                for (int i = 0; i < sessionsCount; i++)
+                {
+                        sessionIdType sessionId = bigEndianToInt<sessionIdType>(client.buf, currentOffset);
+                        currentOffset += sizeof(sessionIdType);
+                        expected_size messageLength = bigEndianToInt<expected_size>(client.buf, currentOffset);
+                        currentOffset += sizeof(expected_size);
+                        std::vector<char> messageBody(client.buf.begin() + currentOffset, client.buf.begin() + currentOffset + messageLength);
+                        currentOffset += messageLength;
+                        std::vector<char> senderId = intToBigEndian<userIdType>(client.session.userid);
+                        std::int64_t timestamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+                        std::vector<char> timestampVec = intToBigEndian<std::int64_t>(timestamp);
+                        std::vector<char> packet;
+                        packet.reserve(HEAD_SIZE + timestampVec.size() + messageBody.size());
+                        packet.push_back(UnitType::normalMessage);
+                        packet.insert(packet.end(), senderId.begin(), senderId.end());
+                        packet.insert(packet.end(), timestampVec.begin(), timestampVec.end());
+                        packet.insert(packet.end(), messageBody.begin(), messageBody.end());
+
+                        if (std::find(sessionList.sessions.begin(), sessionList.sessions.end(), sessionId) == sessionList.sessions.end())
+                                continue;
+
+                        auto it = services.networkingManager.onlineUsers.find(sessionId);
+                        if (it != services.networkingManager.onlineUsers.end())
+                        {
+                                std::cout << "Sending" << std::endl;
+                                Client &receiverClient = services.networkingManager.clientsConnected.get(it->second);
+                                services.networkingManager.secure_send(receiverClient, packet);
+                        }
+                        else
+                        {
+                                std::string message(packet.begin(), packet.end());
+                                services.db.insertMessage(client.session.userid, sessionId, message, timestamp);
+                        }
+                }
+                senderPacket.push_back(NormalMessageResponseCode::NormalMessageResponseSuccess);
         }
+        services.networkingManager.secure_send(client, senderPacket);
 }

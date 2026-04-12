@@ -78,8 +78,8 @@ void AccountHandler::EmailSignIn(Client &client, expected_size expectedSize, Ser
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::emailSignInDone);
-        std::vector<char> idVec = intToBigEndian<int>(account.id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(account.id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
@@ -177,8 +177,8 @@ void AccountHandler::EmailSignUp(Client &client, expected_size expectedSize, Ser
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::emailAccountCreated);
-        std::vector<char> idVec = intToBigEndian<int>(id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());

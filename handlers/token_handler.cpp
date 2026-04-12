@@ -3,14 +3,6 @@
 #include "../unit_type.h"
 #include "../protocol.h"
 
-TokenHandler::TokenHandler()
-{
-}
-
-TokenHandler::~TokenHandler()
-{
-}
-
 void TokenHandler::useAccessToken(Client &client, expected_size expectedSize, Services &services)
 {
         const size_t SESSION_ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;

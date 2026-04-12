@@ -36,7 +36,7 @@ public:
         void sendSearchResponseCode(Client &client, SearchResponseCode responseCode);
         void sendSessionListResponseCode(Client &client, SessionListResponseCode responseCode);
         FreeList<Client> clientsConnected;
-        std::unordered_map<userIdType, FreeList<Client>::Handle> onlineUsers;
+        std::unordered_map<sessionIdType, FreeList<Client>::Handle> onlineUsers;
         std::unordered_map<userIdType, SessionList>sessionsListCache;
         ~NetworkingManager();
 };

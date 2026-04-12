@@ -3,6 +3,6 @@
 
 enum SessionListResponseCode : uint8_t
 {
-        Error = 0,
-        Success = 1
+        SessionListError = 0,
+        SessionListSuccess = 1
 };

@@ -18,7 +18,7 @@ void AccountHandler::SearchWithUsername(Client &client, expected_size expectedSi
         bool isFound;
         if (!services.db.getAccountFromUsername(username.c_str(), account, isFound))
         {
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
         }
 
         if (!isFound)
@@ -42,13 +42,13 @@ void AccountHandler::SearchWithId(Client &client, expected_size expectedSize, Se
         const size_t ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
         const size_t ID_LENGTH = sizeof(userIdType);
         if (expectedSize < ID_OFFSET + ID_LENGTH)
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
         userIdType id = bigEndianToInt<userIdType>(client.buf, ID_OFFSET);
         Account account;
         bool isFound;
         if (!services.db.getAccountFromId(id, account, isFound))
         {
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
         }
 
         if (!isFound)

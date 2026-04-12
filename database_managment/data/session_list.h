@@ -6,6 +6,7 @@ class SessionList
 {
 private:
 public:
+        SessionList();
         SessionList(sessionListVersionType version);
         sessionListVersionType version;
         std::vector<sessionIdType> sessions;
