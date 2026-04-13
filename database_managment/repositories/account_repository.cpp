@@ -9,14 +9,15 @@ bool Database::prepareAccountRepository()
             "username TEXT,"
             "email TEXT,"
             "passwordHash TEXT,"
-            "googleId TEXT"
+            "googleId TEXT,"
+            "sessionListVersion INTEGER DEFAULT 0"
             ");";
         int rc = sqlite3_exec(db, createAccountTableSQL, nullptr, nullptr, nullptr);
         if (!check(rc, "sql create account table error"))
                 return false;
 
         if (!prepare(insert_account_stmt,
-                     "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4 );",
+                     "INSERT INTO accounts(username, email, passwordHash, googleId) VALUES (?1 , ?2 , ?3 , ?4);",
                      "sql insert account statement prepare error"))
                 return false;
         if (!prepare(check_email_exists_stmt,
@@ -37,11 +38,15 @@ bool Database::prepareAccountRepository()
                 return false;
         if (!prepare(get_account_from_google_id_stmt,
                      "SELECT * FROM accounts WHERE googleId = ?1 LIMIT 1;",
-                     "sql get account from googelId statement prepare error"))
+                     "sql get account from googleId statement prepare error"))
                 return false;
         if (!prepare(check_google_id_exists_stmt,
                      "SELECT googleId FROM accounts WHERE googleId = ?1 LIMIT 1;",
                      "sql check googleId statement prepare error"))
+                return false;
+        if (!prepare(increment_session_list_version_stmt,
+                     "UPDATE accounts SET sessionListVersion = sessionListVersion + 1 WHERE id = ?1;",
+                     "sql increment_session_list_version_stmt prepare error"))
                 return false;
         return true;
 }
@@ -76,6 +81,25 @@ void Database::objExists(sqlite3_stmt *exists_stmt, const char *obj, bool &out, 
         cleanup_stmt(exists_stmt);
         status = true;
         return;
+}
+
+bool Database::incrementAccountSessionListVersion(userIdType id)
+{
+        if (!valid)
+                return false;
+        int rc = sqlite3_bind_int64(increment_session_list_version_stmt, 1, id);
+        if (rc != SQLITE_OK)
+                goto error;
+        rc = sqlite3_step(increment_session_list_version_stmt);
+        if (rc == SQLITE_DONE)
+        {
+                cleanup_stmt(increment_session_list_version_stmt);
+                return true;
+        }
+error:
+        std::cerr << "SQLite error (" << rc << ") on Database::incrementAccountSessionListVersion : " << sqlite3_errmsg(db) << std::endl;
+        cleanup_stmt(increment_session_list_version_stmt);
+        return false;
 }
 
 bool Database::insertEmailAccount(const char *username, const char *email, const char *passwordHash)
@@ -128,7 +152,7 @@ bool Database::insertGoogleAccount(const char *username, const char *googleId)
                 return false;
         auto fail = [&](int rc, int stepIndex)
         {
-                std::cerr << "SQLite error (" << rc << ") on insertEmailAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                std::cerr << "SQLite error (" << rc << ") on insertGoogleAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
                 cleanup_stmt(insert_account_stmt);
                 return false;
         };
@@ -150,7 +174,6 @@ bool Database::insertGoogleAccount(const char *username, const char *googleId)
         if (rc != SQLITE_OK)
                 return fail(rc, 4);
 
-        // Running Statement.
         rc = sqlite3_step(insert_account_stmt);
         if (rc != SQLITE_DONE)
                 return fail(rc, 5);
@@ -172,7 +195,7 @@ bool Database::getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, boo
         {
                 if (sqlite3_column_type(readyToRunStmt, 0) != SQLITE_INTEGER)
                         goto type_error;
-                int id = sqlite3_column_int(readyToRunStmt, 0);
+                userIdType id = sqlite3_column_int64(readyToRunStmt, 0);
 
                 if (sqlite3_column_type(readyToRunStmt, 1) != SQLITE_TEXT)
                         goto type_error;
@@ -237,11 +260,16 @@ bool Database::getAccount(sqlite3_stmt *readyToRunStmt, Account &accountOut, boo
                         goto type_error;
                 }
 
+                if (sqlite3_column_type(readyToRunStmt, 5) != SQLITE_INTEGER)
+                        goto type_error;
+                sessionListVersionType sessionListVersion = sqlite3_column_int64(readyToRunStmt, 5);
+
                 accountOut.id = id;
                 accountOut.username = username;
                 accountOut.email = email;
                 accountOut.passHash = passHash;
                 accountOut.googleId = googleId;
+                accountOut.sessionListVersion = sessionListVersion;
                 isFound = true;
                 cleanup_stmt(readyToRunStmt);
                 return true;
@@ -272,13 +300,13 @@ error:
         return false;
 }
 
-bool Database::getAccountFromId(int id, Account &accountOut, bool &isFound)
+bool Database::getAccountFromId(userIdType id, Account &accountOut, bool &isFound)
 {
         isFound = false;
         if (!valid)
                 return false;
 
-        int rc = sqlite3_bind_int(get_account_from_id_stmt, 1, id);
+        int rc = sqlite3_bind_int64(get_account_from_id_stmt, 1, id);
         if (rc != SQLITE_OK)
                 goto error;
         return getAccount(get_account_from_id_stmt, accountOut, isFound);
@@ -315,7 +343,7 @@ bool Database::getAccountFromGoogleId(const char *googleId, Account &accountOut,
                 goto error;
         return getAccount(get_account_from_google_id_stmt, accountOut, isFound);
 error:
-        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromEmail : " << sqlite3_errmsg(db) << std::endl;
+        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromGoogleId : " << sqlite3_errmsg(db) << std::endl;
         cleanup_stmt(get_account_from_google_id_stmt);
         return false;
 }

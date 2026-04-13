@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <cstdint>
+#include "account.h"
 
 class Session
 {
@@ -8,8 +9,8 @@ private:
 public:
         std::string refreshTokenHash;
         std::string accessTokenHash;
-        uint32_t userid;
-        uint32_t sessionId;
+        userIdType userid;
+        sessionIdType sessionId;
         int64_t accessExpiry;
         int64_t refreshExpiry;
         Session();

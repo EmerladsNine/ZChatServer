@@ -14,6 +14,8 @@ Database::Database()
                 return;
         if (!prepareSessionRepository())
                 return;
+        if(!prepareMessagesRepository())
+                return;
         if (!prepare(get_last_inserted_id_stmt,
                      "SELECT last_insert_rowid();",
                      "sql get lastInsertedId statement prepare error"))\
@@ -58,7 +60,7 @@ Database::~Database()
         sqlite3_close(db);
 }
 
-bool Database::getLastInsertedId(int &id)
+bool Database::getLastInsertedId(uint64_t &id)
 {
         if (!valid)
                 return false;
@@ -67,7 +69,7 @@ bool Database::getLastInsertedId(int &id)
         {
                 if (sqlite3_column_type(get_last_inserted_id_stmt, 0) != SQLITE_INTEGER)
                         goto error;
-                id = sqlite3_column_int(get_last_inserted_id_stmt, 0);
+                id = sqlite3_column_int64(get_last_inserted_id_stmt, 0);
                 cleanup_stmt(get_last_inserted_id_stmt);
                 return true;
         }

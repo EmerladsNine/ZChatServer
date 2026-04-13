@@ -1,6 +1,6 @@
 #include "networking_manager.h"
 #include "client.h"
-#include "utils.h"
+#include "utils/endian_codec.h"
 #include "unit_type.h"
 #include "services.h"
 #include "protocol.h"
@@ -131,6 +131,14 @@ void NetworkingManager::sendSessionStateResponseCode(Client &client, SessionStat
 {
         std::vector<char> packet;
         packet.push_back(UnitType::sessionStateResponseCode);
+        packet.push_back(responseCode);
+        secure_send(client, packet);
+}
+
+void NetworkingManager::sendSessionListResponseCode(Client &client, SessionListResponseCode responseCode)
+{
+        std::vector<char> packet;
+        packet.push_back(UnitType::requestSessionListResponseCode);
         packet.push_back(responseCode);
         secure_send(client, packet);
 }

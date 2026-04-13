@@ -1,7 +1,7 @@
 #include "../handlers/account_handler.h"
 #include "../protocol.h"
 #include "../unit_type.h"
-#include "../utils.h"
+#include "../utils/endian_codec.h"
 
 void AccountHandler::SearchWithUsername(Client &client, expected_size expectedSize, Services &services)
 {
@@ -18,7 +18,7 @@ void AccountHandler::SearchWithUsername(Client &client, expected_size expectedSi
         bool isFound;
         if (!services.db.getAccountFromUsername(username.c_str(), account, isFound))
         {
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
         }
 
         if (!isFound)
@@ -29,7 +29,7 @@ void AccountHandler::SearchWithUsername(Client &client, expected_size expectedSi
         std::vector<char> packet;
         packet.push_back(UnitType::searchResponseCode);
         packet.push_back(SearchResponseCode::Found);
-        std::vector<char> id = intToBigEndian<std::uint32_t>(account.id);
+        std::vector<char> id = intToBigEndian<userIdType>(account.id);
         packet.insert(packet.end(), id.begin(), id.end());
         packet.insert(packet.end(), account.username.begin(), account.username.end());
 
@@ -40,15 +40,15 @@ void AccountHandler::SearchWithId(Client &client, expected_size expectedSize, Se
 {
         NetworkingManager *networkManager = &services.networkingManager;
         const size_t ID_OFFSET = HEADER_OFFSET + HEAD_SIZE;
-        const size_t ID_LENGTH = 4;
+        const size_t ID_LENGTH = sizeof(userIdType);
         if (expectedSize < ID_OFFSET + ID_LENGTH)
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
-        uint32_t id = bigEndianToInt<uint32_t>(client.buf, ID_OFFSET);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
+        userIdType id = bigEndianToInt<userIdType>(client.buf, ID_OFFSET);
         Account account;
         bool isFound;
         if (!services.db.getAccountFromId(id, account, isFound))
         {
-                return networkManager->sendSearchResponseCode(client, SearchResponseCode::Error);
+                return networkManager->sendSearchResponseCode(client, SearchResponseCode::SearchError);
         }
 
         if (!isFound)
@@ -59,7 +59,7 @@ void AccountHandler::SearchWithId(Client &client, expected_size expectedSize, Se
         std::vector<char> packet;
         packet.push_back(UnitType::searchResponseCode);
         packet.push_back(SearchResponseCode::Found);
-        std::vector<char> accId = intToBigEndian<std::uint32_t>(account.id);
+        std::vector<char> accId = intToBigEndian<userIdType>(account.id);
         packet.insert(packet.end(), accId.begin(), accId.end());
         packet.insert(packet.end(), account.username.begin(), account.username.end());
 

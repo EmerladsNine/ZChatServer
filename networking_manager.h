@@ -8,8 +8,11 @@
 #include "response_codes/auth_response_code.h"
 #include "response_codes/search_response_code.h"
 #include "response_codes/session_state_response_code.h"
+#include "response_codes/session_list_response_code.h"
 #include <unordered_map>
 #include "utils/free_list.h"
+#include "database_managment/data/account.h"
+#include "database_managment/data/session_list.h"
 
 class Client;
 class Services;
@@ -31,7 +34,9 @@ public:
         void sendAuthResponseCode(Client &client, AuthResponseCode responseCode);
         void sendSessionStateResponseCode(Client &client, SessionStateResponseCode responseCode);
         void sendSearchResponseCode(Client &client, SearchResponseCode responseCode);
+        void sendSessionListResponseCode(Client &client, SessionListResponseCode responseCode);
         FreeList<Client> clientsConnected;
-        std::unordered_map<int, FreeList<Client>::Handle> onlineUsers;
+        std::unordered_map<sessionIdType, FreeList<Client>::Handle> onlineUsers;
+        std::unordered_map<userIdType, SessionList>sessionsListCache;
         ~NetworkingManager();
 };

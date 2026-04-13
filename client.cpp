@@ -38,17 +38,32 @@ void Client::authenticate(Services &services, Session sessionToAdd)
 {
         if (inSession)
         {
-                std::cout << "LOG OUT : " << session.userid << std::endl;
-                services.networkingManager.onlineUsers.erase(session.userid);
+                std::cout << "LOG OUT : " << session.sessionId << std::endl;
+                services.networkingManager.onlineUsers.erase(session.sessionId);
                 inSession = false;
                 isSessionValid = false;
         }
-        services.networkingManager.onlineUsers[sessionToAdd.userid] = handle;
+        services.networkingManager.onlineUsers[sessionToAdd.sessionId] = handle;
         session = sessionToAdd;
         inSession = true;
         if (session.isAccessTokenActive(30))
+        {
                 isSessionValid = true;
-        std::cout << "Authenticated : " << sessionToAdd.userid << std::endl;
+                std::vector<Message> messages;
+                if (services.db.getMessagesForSession(session.sessionId, messages))
+                {
+                        for (Message &msg : messages)
+                        {
+                                services.networkingManager.secure_send(*this, msg.message);
+                        }
+                        if (!messages.empty())
+                        {
+                                int64_t lastTimestamp = messages.back().timestamp;
+                                services.db.deleteMessagesBefore(session.sessionId, lastTimestamp);
+                        }
+                }
+        }
+        std::cout << "Authenticated : " << sessionToAdd.sessionId << std::endl;
 }
 
 void Client::disconnect(Services &services)
@@ -57,6 +72,6 @@ void Client::disconnect(Services &services)
         {
                 inSession = false;
                 isSessionValid = false;
-                services.networkingManager.onlineUsers.erase(session.userid);
+                services.networkingManager.onlineUsers.erase(session.sessionId);
         }
 }

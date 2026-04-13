@@ -2,7 +2,7 @@
 #include "../protocol.h"
 #include "curl/curl.h"
 #include "../unit_type.h"
-#include "../utils.h"
+#include "../utils/endian_codec.h"
 
 bool verifyGoogleToken(std::string &token, Client &client, std::string &googleIdOut, Services &services)
 {
@@ -77,9 +77,20 @@ void AccountHandler::GoogleSignIn(Client &client, expected_size expectedSize, Se
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(account.id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+
+        if (!services.db.incrementAccountSessionListVersion(account.id))
+                return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
+
+        if (services.networkingManager.sessionsListCache.contains(account.id))
+        {
+                SessionList &list = services.networkingManager.sessionsListCache[account.id];
+                list.version += 1;
+                list.sessions.push_back(sessionId);
+        }
+
         Session session;
         bool isFound;
         if (!services.db.getSessionFromId(sessionId, session, isFound))
@@ -94,8 +105,8 @@ void AccountHandler::GoogleSignIn(Client &client, expected_size expectedSize, Se
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
-        std::vector<char> idVec = intToBigEndian<int>(account.id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(account.id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
@@ -147,7 +158,7 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
         // Create.
         if (!services.db.insertGoogleAccount(username.c_str(), googleId.c_str()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int id;
+        userIdType id;
         if (!services.db.getLastInsertedId(id))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
@@ -160,7 +171,7 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
         if (!services.db.insertSession(id, accessTokenHash, refreshTokenHash.data()))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
-        int sessionId;
+        sessionIdType sessionId;
         if (!services.db.getLastInsertedId(sessionId))
                 return networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
 
@@ -178,8 +189,8 @@ void AccountHandler::GoogleSignUp(Client &client, expected_size expectedSize, Se
         std::vector<char> packet;
         packet.push_back(UnitType::authResponseCode);
         packet.push_back(AuthResponseCode::googleAuthSuccessful);
-        std::vector<char> idVec = intToBigEndian<int>(id);
-        std::vector<char> sessionIdVec = intToBigEndian<int>(sessionId);
+        std::vector<char> idVec = intToBigEndian<userIdType>(id);
+        std::vector<char> sessionIdVec = intToBigEndian<sessionIdType>(sessionId);
         packet.insert(packet.end(), idVec.begin(), idVec.end());
         packet.insert(packet.end(), sessionIdVec.begin(), sessionIdVec.end());
         packet.insert(packet.end(), accessToken.begin(), accessToken.end());
