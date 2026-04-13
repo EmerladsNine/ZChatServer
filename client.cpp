@@ -47,7 +47,22 @@ void Client::authenticate(Services &services, Session sessionToAdd)
         session = sessionToAdd;
         inSession = true;
         if (session.isAccessTokenActive(30))
+        {
                 isSessionValid = true;
+                std::vector<Message> messages;
+                if (services.db.getMessagesForSession(session.sessionId, messages))
+                {
+                        for (Message &msg : messages)
+                        {
+                                services.networkingManager.secure_send(*this, msg.message);
+                        }
+                        if (!messages.empty())
+                        {
+                                int64_t lastTimestamp = messages.back().timestamp;
+                                services.db.deleteMessagesBefore(session.sessionId, lastTimestamp);
+                        }
+                }
+        }
         std::cout << "Authenticated : " << sessionToAdd.sessionId << std::endl;
 }
 

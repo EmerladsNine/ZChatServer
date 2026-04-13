@@ -4,6 +4,7 @@
 #include <sqlite3.h>
 #include "data/account.h"
 #include "data/session.h"
+#include "data/message.h"
 
 class Database
 {
@@ -32,6 +33,8 @@ public:
 
         // Messages Repository
         sqlite3_stmt *insert_message_stmt = nullptr;
+        sqlite3_stmt *get_messages_for_session_stmt = nullptr;
+        sqlite3_stmt *delete_messages_before_timestamp_stmt = nullptr;
 
         Database();
         bool prepare(sqlite3_stmt *&stmt, const char *sql, const char *name);
@@ -63,4 +66,7 @@ public:
         // Messages Repository
         bool prepareMessagesRepository();
         bool insertMessage(userIdType senderUserId, sessionIdType receiverSessionId, std::string &message, int64_t timestamp);
+        bool getMessagesForSession(sessionIdType receiverSessionId, std::vector<Message> &messagesOut);
+        bool getMessagesInternal(sqlite3_stmt *readyToRunStmt, std::vector<Message> &messagesOut);
+        bool deleteMessagesBefore(sessionIdType receiverSessionId, int64_t timestamp);
 };

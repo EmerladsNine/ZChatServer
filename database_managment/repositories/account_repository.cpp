@@ -38,7 +38,7 @@ bool Database::prepareAccountRepository()
                 return false;
         if (!prepare(get_account_from_google_id_stmt,
                      "SELECT * FROM accounts WHERE googleId = ?1 LIMIT 1;",
-                     "sql get account from googelId statement prepare error"))
+                     "sql get account from googleId statement prepare error"))
                 return false;
         if (!prepare(check_google_id_exists_stmt,
                      "SELECT googleId FROM accounts WHERE googleId = ?1 LIMIT 1;",
@@ -91,7 +91,7 @@ bool Database::incrementAccountSessionListVersion(userIdType id)
         if (rc != SQLITE_OK)
                 goto error;
         rc = sqlite3_step(increment_session_list_version_stmt);
-        if (rc == SQLITE_OK)
+        if (rc == SQLITE_DONE)
         {
                 cleanup_stmt(increment_session_list_version_stmt);
                 return true;
@@ -152,7 +152,7 @@ bool Database::insertGoogleAccount(const char *username, const char *googleId)
                 return false;
         auto fail = [&](int rc, int stepIndex)
         {
-                std::cerr << "SQLite error (" << rc << ") on insertEmailAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
+                std::cerr << "SQLite error (" << rc << ") on insertGoogleAccount , step " << stepIndex << ": " << sqlite3_errmsg(db) << std::endl;
                 cleanup_stmt(insert_account_stmt);
                 return false;
         };
@@ -343,7 +343,7 @@ bool Database::getAccountFromGoogleId(const char *googleId, Account &accountOut,
                 goto error;
         return getAccount(get_account_from_google_id_stmt, accountOut, isFound);
 error:
-        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromEmail : " << sqlite3_errmsg(db) << std::endl;
+        std::cerr << "SQLite error (" << rc << ") on Database::getAccountFromGoogleId : " << sqlite3_errmsg(db) << std::endl;
         cleanup_stmt(get_account_from_google_id_stmt);
         return false;
 }
