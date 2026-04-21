@@ -40,6 +40,7 @@ void Client::authenticate(Services &services, Session sessionToAdd)
         {
                 std::cout << "LOG OUT : " << session.sessionId << std::endl;
                 services.networkingManager.onlineUsers.erase(session.sessionId);
+                services.db.updateFcmToken(session.sessionId, nullptr);
                 inSession = false;
                 isSessionValid = false;
         }

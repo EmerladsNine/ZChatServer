@@ -4,6 +4,7 @@ from google.oauth2 import id_token
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests 
 from pydantic import BaseModel
+import notification_request as nr
 
 CLIENT_ID = "987307069745-gsd1drcikr8retccfcafgf3tme882ub3.apps.googleusercontent.com"; #web client id
 
@@ -26,3 +27,28 @@ def verify(data: TokenData):
                 # Issuer invalid, or other Google auth problem
                 raise HTTPException(status_code=401, detail=f"Google auth error: {str(e)}")
 
+
+
+@app.post("/send-notification")
+def send_notification(data: nr.NotificationRequest):
+        try:
+                message = nr.messaging.Message(
+                    token=data.device_token,
+                    notification=nr.messaging.Notification(
+                        title=data.title,
+                        body=data.body
+                    ),
+                )
+
+                response = nr.messaging.send(message)
+                
+                return PlainTextResponse(response)
+
+        except ValueError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid notification data: {str(e)}")
+
+        except nr.firebase_admin.exceptions.FirebaseError as e:
+                raise HTTPException(status_code=500, detail=f"Firebase error: {str(e)}")
+
+        except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -36,6 +36,7 @@ add_executable(ZChatServer
         ./handlers/account_handler.cpp
         ./handlers/token_handler.cpp
         ./handlers/session_list_handler.cpp
+        ./handlers/fcm_handler.cpp
 )
 
 target_link_directories(ZChatServer PRIVATE ${SODIUM_INCLUDE_DIRS})

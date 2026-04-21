@@ -7,8 +7,9 @@ bool Database::prepareSessionRepository()
             "CREATE TABLE IF NOT EXISTS sessions ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "userId INT NOT NULL,"
-            "accessTokenHash BLOB NOT NULL,"
-            "refreshTokenHash TEXT NOT NULL,"
+            "accessTokenHash BLOB UNIQUE NOT NULL,"
+            "refreshTokenHash TEXT UNIQUE NOT NULL,"
+            "fcmToken TEXT UNIQUE,"
             "accessExpires INT,"
             "refreshExpires INT"
             ");";
@@ -16,7 +17,7 @@ bool Database::prepareSessionRepository()
         if (!check(rc, "sql create session table error"))
                 return false;
         if (!prepare(insert_session_stmt,
-                     "INSERT INTO sessions(userId, accessTokenHash, refreshTokenHash, accessExpires, refreshExpires) VALUES (?1 , ?2 , ?3 , "
+                     "INSERT INTO sessions(userId, accessTokenHash, refreshTokenHash,fcmToken, accessExpires, refreshExpires) VALUES (?1 , ?2 , ?3 , null, "
                      "strftime('%s', 'now', '+45 minutes'),"
                      "strftime('%s', 'now', '+60 days')"
                      ");",
@@ -42,6 +43,14 @@ bool Database::prepareSessionRepository()
         if (!prepare(get_sessions_from_user_id_stmt,
                      "SELECT * FROM sessions WHERE userId = ?1;",
                      "sql get_sessions_from_user_id_stmt prepare error"))
+                return false;
+        if (!prepare(update_fcm_token_stmt,
+                     "UPDATE sessions SET fcmToken = ?1 WHERE id = ?2;",
+                     "sql update_fcm_token_stmt prepare error"))
+                return false;
+        if (!prepare(remove_fcm_token_stmt,
+                     "UPDATE sessions SET fcmToken = null WHERE fcmToken = ?1",
+                     "sql remove_fcm_token_stmt prepare error"))
                 return false;
         return true;
 }
@@ -180,13 +189,22 @@ bool Database::getSessionFromId(sessionIdType sessionId, Session &session, bool 
                         goto error;
                 session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText), len);
 
-                if (sqlite3_column_type(get_session_from_id_stmt, 4) != SQLITE_INTEGER)
-                        goto type_error;
-                session.accessExpiry = sqlite3_column_int64(get_session_from_id_stmt, 4);
-
+                if (sqlite3_column_type(get_sessions_from_user_id_stmt, 4) != SQLITE_NULL)
+                {
+                        const unsigned char *fcm = sqlite3_column_text(get_sessions_from_user_id_stmt, 4);
+                        session.fcmToken.assign(reinterpret_cast<const char *>(fcm));
+                }
+                else
+                {
+                        session.fcmToken = "";
+                }
                 if (sqlite3_column_type(get_session_from_id_stmt, 5) != SQLITE_INTEGER)
                         goto type_error;
-                session.refreshExpiry = sqlite3_column_int64(get_session_from_id_stmt, 5);
+                session.accessExpiry = sqlite3_column_int64(get_session_from_id_stmt, 5);
+
+                if (sqlite3_column_type(get_session_from_id_stmt, 6) != SQLITE_INTEGER)
+                        goto type_error;
+                session.refreshExpiry = sqlite3_column_int64(get_session_from_id_stmt, 6);
 
                 isFound = true;
                 cleanup_stmt(get_session_from_id_stmt);
@@ -252,13 +270,23 @@ bool Database::getSessionsFromUserId(userIdType userId, std::vector<Session> &se
                                 goto error;
                         session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText), len);
 
-                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 4) != SQLITE_INTEGER)
-                                goto type_error;
-                        session.accessExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 4);
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 4) != SQLITE_NULL)
+                        {
+                                const unsigned char *fcm = sqlite3_column_text(get_sessions_from_user_id_stmt, 4);
+                                session.fcmToken.assign(reinterpret_cast<const char *>(fcm));
+                        }
+                        else
+                        {
+                                session.fcmToken = "";
+                        }
 
                         if (sqlite3_column_type(get_sessions_from_user_id_stmt, 5) != SQLITE_INTEGER)
                                 goto type_error;
-                        session.refreshExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 5);
+                        session.accessExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 5);
+
+                        if (sqlite3_column_type(get_sessions_from_user_id_stmt, 6) != SQLITE_INTEGER)
+                                goto type_error;
+                        session.refreshExpiry = sqlite3_column_int64(get_sessions_from_user_id_stmt, 6);
                         sessions.push_back(session);
                 }
                 else
@@ -275,4 +303,54 @@ type_error:
         std::cerr << "SQLite error on Database::getSessionsFromUserId : incorrect type" << std::endl;
         cleanup_stmt(get_sessions_from_user_id_stmt);
         return false;
+}
+
+bool Database::updateFcmToken(sessionIdType sessionId, const char *fcmToken)
+{
+        if (!valid)
+                return false;
+
+        // Bind New Token
+        if (fcmToken)
+                sqlite3_bind_text(update_fcm_token_stmt, 1, fcmToken, -1, SQLITE_TRANSIENT);
+        else
+                sqlite3_bind_null(update_fcm_token_stmt, 1);
+
+        // Bind Session ID
+        sqlite3_bind_int64(update_fcm_token_stmt, 2, sessionId);
+
+        int rc = sqlite3_step(update_fcm_token_stmt);
+        if (rc != SQLITE_DONE)
+        {
+                std::cerr << "SQLite error on updateFcmToken: " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(update_fcm_token_stmt);
+                return false;
+        }
+
+        cleanup_stmt(update_fcm_token_stmt);
+        return true;
+}
+
+bool Database::removeFcmToken(const char *fcmToken)
+{
+
+        if (!valid)
+                return false;
+
+        // Bind New Token
+        if (fcmToken)
+                sqlite3_bind_text(remove_fcm_token_stmt, 1, fcmToken, -1, SQLITE_TRANSIENT);
+        else
+                return false;
+
+        int rc = sqlite3_step(remove_fcm_token_stmt);
+        if (rc != SQLITE_DONE)
+        {
+                std::cerr << "SQLite error on removeFcmToken: " << sqlite3_errmsg(db) << std::endl;
+                cleanup_stmt(remove_fcm_token_stmt);
+                return false;
+        }
+
+        cleanup_stmt(remove_fcm_token_stmt);
+        return true;
 }
