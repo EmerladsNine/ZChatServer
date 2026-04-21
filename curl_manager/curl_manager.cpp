@@ -33,7 +33,7 @@ CurlManager::CurlManager()
         curl_easy_setopt(FcmCurl, CURLOPT_POST, 1L);
         curl_easy_setopt(FcmCurl, CURLOPT_TIMEOUT, 5L);
         curl_easy_setopt(FcmCurl, CURLOPT_CONNECTTIMEOUT, 5L);
-        struct curl_slist *headers = nullptr;
+        headers = nullptr;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(FcmCurl, CURLOPT_HTTPHEADER, headers);
         curl_slist_free_all(headers);
