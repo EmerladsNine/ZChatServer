@@ -6,6 +6,7 @@
 #include "handlers/account_handler.h"
 #include "handlers/token_handler.h"
 #include "handlers/session_list_handler.h"
+#include "handlers/fcm_handler.h"
 #include "response_codes/normal_message_response_code.h"
 
 using namespace std::chrono;
@@ -101,6 +102,10 @@ void Protocol::handleUnit(Client &client, expected_size expectedSize, Services &
         else if (head == UnitType::requestSessionsList)
         {
                 SessionListHandler::handleSessionListRequest(client, expectedSize, services);
+        }
+        else if (head == UnitType::syncFcmToken)
+        {
+                FcmHandler::handleFcmToken(client, expectedSize, services);
         }
 }
 
@@ -201,6 +206,21 @@ void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, S
                         {
                                 std::string message(packet.begin(), packet.end());
                                 services.db.insertMessage(client.session.userid, sessionId, message, timestamp);
+                                Session session;
+                                bool isFound;
+                                if (services.db.getSessionFromId(sessionId, session, isFound) && isFound && !session.fcmToken.empty() && !services.curlManager.valid)
+                                {
+                                        std::string jsonBody = "{"
+                                                               "\"device_token\": \"" +
+                                                               session.fcmToken + "\","
+                                                                                  "\"title\": \"ZChat Notification\","
+                                                                                  "\"body\": \"you got a new message!\""
+                                                                                  "}";
+                                        std::string out;
+                                        curl_easy_setopt(services.curlManager.FcmCurl, CURLOPT_WRITEDATA, &out);
+                                        curl_easy_setopt(services.curlManager.FcmCurl, CURLOPT_POSTFIELDS, jsonBody.c_str());
+                                        CURLcode res = curl_easy_perform(services.curlManager.FcmCurl);
+                                }
                         }
                 }
                 senderPacket.push_back(NormalMessageResponseCode::NormalMessageResponseSuccess);

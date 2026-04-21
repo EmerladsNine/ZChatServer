@@ -30,6 +30,8 @@ public:
         sqlite3_stmt *get_session_from_id_stmt = nullptr;
         sqlite3_stmt *get_sessions_from_user_id_stmt = nullptr;
         sqlite3_stmt *update_session_stmt = nullptr;
+        sqlite3_stmt *update_fcm_token_stmt = nullptr;
+        sqlite3_stmt *remove_fcm_token_stmt = nullptr;
 
         // Messages Repository
         sqlite3_stmt *insert_message_stmt = nullptr;
@@ -62,6 +64,8 @@ public:
         bool sessionExists(std::string accessTokenHash, const char *refreshTokenHash, bool &result);
         bool getSessionFromId(sessionIdType sessionId, Session &session, bool &isFound);
         bool getSessionsFromUserId(userIdType userId, std::vector<Session> &sessions);
+        bool updateFcmToken(sessionIdType sessionId, const char *fcmToken);
+        bool removeFcmToken(const char *fcmToken);
 
         // Messages Repository
         bool prepareMessagesRepository();

@@ -9,6 +9,7 @@ private:
 public:
         std::string refreshTokenHash;
         std::string accessTokenHash;
+        std::string fcmToken;
         userIdType userid;
         sessionIdType sessionId;
         int64_t accessExpiry;

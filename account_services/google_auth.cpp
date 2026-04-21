@@ -1,39 +1,26 @@
 #include "../handlers/account_handler.h"
 #include "../protocol.h"
-#include "curl/curl.h"
+#include <curl/curl.h>
 #include "../unit_type.h"
 #include "../utils/endian_codec.h"
 
 bool verifyGoogleToken(std::string &token, Client &client, std::string &googleIdOut, Services &services)
 {
         NetworkingManager *networkManager = &services.networkingManager;
-        CURL *curl = curl_easy_init();
-        if (!curl)
+        if (!services.curlManager.valid)
         {
                 networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthFailed);
                 return false;
         }
         std::string jsonBody = "{\"token\": \"" + token + "\"}";
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, +[](char *ptr, size_t size, size_t nmemb, void *userdata) -> size_t
-                         {
-              std::string *str = static_cast<std::string *>(userdata);
-              str->append(ptr, size * nmemb);
-              return size * nmemb; });
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &googleIdOut);
-        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000/verify");
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
-        curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
-        struct curl_slist *headers = nullptr;
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        CURLcode res = curl_easy_perform(curl);
+        googleIdOut.clear();
+        curl_easy_setopt(services.curlManager.googleAuthCurl, CURLOPT_WRITEDATA, &googleIdOut);
+        curl_easy_setopt(services.curlManager.googleAuthCurl, CURLOPT_POSTFIELDS, jsonBody.c_str());
+
+        CURLcode res = curl_easy_perform(services.curlManager.googleAuthCurl);
         long http_code = 0;
         if (res == CURLE_OK)
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
+                curl_easy_getinfo(services.curlManager.googleAuthCurl, CURLINFO_RESPONSE_CODE, &http_code);
         if (http_code == 401)
         {
                 networkManager->sendAuthResponseCode(client, AuthResponseCode::googleAuthInvalidToken);

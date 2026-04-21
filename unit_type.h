@@ -18,5 +18,7 @@ enum UnitType : uint8_t
         useAccessToken = 13,
         useRefreshToken = 14,
         requestSessionsList = 15,
-        requestSessionListResponseCode = 16
+        requestSessionListResponseCode = 16,
+        syncFcmToken = 17,
+        syncFcmTokenResponse = 18
 };
