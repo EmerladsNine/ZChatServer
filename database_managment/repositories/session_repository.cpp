@@ -189,9 +189,9 @@ bool Database::getSessionFromId(sessionIdType sessionId, Session &session, bool 
                         goto error;
                 session.refreshTokenHash.assign(reinterpret_cast<const char *>(refreshTokenHashText), len);
 
-                if (sqlite3_column_type(get_sessions_from_user_id_stmt, 4) != SQLITE_NULL)
+                if (sqlite3_column_type(get_session_from_id_stmt, 4) != SQLITE_NULL)
                 {
-                        const unsigned char *fcm = sqlite3_column_text(get_sessions_from_user_id_stmt, 4);
+                        const unsigned char *fcm = sqlite3_column_text(get_session_from_id_stmt, 4);
                         session.fcmToken.assign(reinterpret_cast<const char *>(fcm));
                 }
                 else

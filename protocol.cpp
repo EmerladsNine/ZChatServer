@@ -208,7 +208,7 @@ void Protocol::handleNormalMessage(Client &client, expected_size expectedSize, S
                                 services.db.insertMessage(client.session.userid, sessionId, message, timestamp);
                                 Session session;
                                 bool isFound;
-                                if (services.db.getSessionFromId(sessionId, session, isFound) && isFound && !session.fcmToken.empty() && !services.curlManager.valid)
+                                if (services.db.getSessionFromId(sessionId, session, isFound) && isFound && !session.fcmToken.empty() && services.curlManager.valid)
                                 {
                                         std::string jsonBody = "{"
                                                                "\"device_token\": \"" +
