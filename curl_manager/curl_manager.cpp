@@ -19,7 +19,6 @@ CurlManager::CurlManager()
         struct curl_slist *headers = nullptr;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(googleAuthCurl, CURLOPT_HTTPHEADER, headers);
-        curl_slist_free_all(headers);
 
         FcmCurl = curl_easy_init();
         if (!FcmCurl)
@@ -36,7 +35,6 @@ CurlManager::CurlManager()
         headers = nullptr;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(FcmCurl, CURLOPT_HTTPHEADER, headers);
-        curl_slist_free_all(headers);
         valid = true;
 }
 
